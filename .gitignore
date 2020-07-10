@@ -2,6 +2,7 @@ target
 .idea
 .metals
 .ensime
+.metals
 .ensime_cache
 cassandra.logdir*
 docs/src/main/tut/cass3
