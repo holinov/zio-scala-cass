@@ -1,4 +1,4 @@
-val baseVersion       = "1.0.5"
+val baseVersion       = "1.0.6"
 val cassandra3Version = "3.7.1"
 val cassandra2Version = "2.1.10.3"
 val cassandraVersion =
@@ -14,7 +14,7 @@ def addUnmanagedSourceDirsFrom(folder: String) = {
   def addSourceFilesTo(conf: Configuration) =
     unmanagedSourceDirectories in conf := {
       val sds = (unmanagedSourceDirectories in conf).value
-      val sd = (sourceDirectory in conf).value
+      val sd  = (sourceDirectory in conf).value
       sds :+ new java.io.File(sd, folder)
     }
 
@@ -57,20 +57,6 @@ lazy val commonSettings = Seq(
   (scalacOptions in Test) -= "-Xfatal-warnings",
   parallelExecution in Test := false
 )
-
-//lazy val macroSettings = Seq(
-//  libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
-//      case Some((2, 10)) =>
-//        Seq(
-//          "org.scalameta"          %% "scalameta"            % "4.3.18",
-//          "org.scala-lang"         % "scala-reflect"         % scalaVersion.value,
-//          "org.scala-lang"         % "scala-compiler"        % scalaVersion.value % "provided",
-//          "com.datastax.cassandra" % "cassandra-driver-core" % cassandraVersion classifier "shaded",
-//          "org.scalamacros"        %% "quasiquotes"          % "2.1.1" cross CrossVersion.binary
-//        )
-//      case _ => Seq.empty
-//    })
-//)
 
 lazy val applicationSettings = Seq(
   name := "zio-scala-cass",
