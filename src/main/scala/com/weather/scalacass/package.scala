@@ -6,6 +6,6 @@ package object scalacass {
   implicit final class AnyOps[A](self: A) {
     def ===(other: A): Boolean = self == other
     def !==(other: A): Boolean = self != other
-    def isNull: Boolean = self == null
+    def isNull: Boolean        = self == null
   }
 }

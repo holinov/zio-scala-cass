@@ -20,5 +20,7 @@ object Implicits {
 
   implicit def zonedDateTimeEncoder(implicit cluster: Cluster): CassFormatEncoder[ZonedDateTime] =
     sameTypeCassFormatEncoder(cluster.getMetadata.newTupleType(DataType.timestamp, DataType.varchar))
-  implicit val zonedDateTimeDecoder: CassFormatDecoder[ZonedDateTime] = codecCassFormatDecoder(TypeToken.of(classOf[ZonedDateTime]))
+  implicit val zonedDateTimeDecoder: CassFormatDecoder[ZonedDateTime] = codecCassFormatDecoder(
+    TypeToken.of(classOf[ZonedDateTime])
+  )
 }
