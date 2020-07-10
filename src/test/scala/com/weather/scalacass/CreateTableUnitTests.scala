@@ -1,11 +1,11 @@
 package com.weather.scalacass
 
 import com.weather.scalacass.util.CassandraUnitTester
-
-import scala.collection.convert.AsScalaConverters
+import scala.collection.compat._
+import scala.jdk.CollectionConverters._
 import scala.language.reflectiveCalls
 
-class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
+class CreateTableUnitTests extends CassandraUnitTester {
   val dbName       = "testDB"
   val tableColumns = List("str varchar, str2 varchar, i int")
   val primaryKeys  = List("str")
@@ -36,8 +36,8 @@ class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
   def getpk[T: CCCassFormatDecoder: CCCassFormatEncoder](tname: String, pkCount: Int, clustCount: Int) = {
     ssFixture.ss.createTable[T](tname, pkCount, clustCount).execute()
     val table = cluster.getMetadata.getKeyspace(dbName).getTable(tname)
-    val parts = asScala(table.getPartitionKey).map(_.getName)
-    val clust = asScala(table.getClusteringColumns).map(_.getName)
+    val parts = table.getPartitionKey.asScala.map(_.getName)
+    val clust = table.getClusteringColumns.asScala.map(_.getName)
     (parts, clust)
   }
 

@@ -4,7 +4,10 @@ import com.weather.scalacass.ScalaCassUnitTestsVersionSpecific.BadTypeException
 import org.scalatest.OptionValues
 import com.weather.scalacass.util.CassandraWithTableTester
 import com.datastax.driver.core.exceptions.InvalidTypeException
+import com.datastax.driver.core.Row
 import syntax._
+
+import scala.collection.compat._
 
 abstract class ScalaCassUnitTests
     extends CassandraWithTableTester(
@@ -33,6 +36,8 @@ abstract class ScalaCassUnitTests
       List("str")
     )
     with OptionValues {
+  NameEncoders.setNameEncoder(NameEncoders.snakeCaseEncoder)
+
   def testType[GoodType: CassFormatDecoder, BadType: CassFormatDecoder](
       k: String,
       v: GoodType,
@@ -144,8 +149,7 @@ abstract class ScalaCassUnitTests
       ss.delete[ScalaSession.NoQuery](tname, q1).execute()
       ss.select[ScalaSession.Star](tname, q1)
         .execute()
-        .getOrElse(None)
-        .iterator
+        .getOrElse(Iterator.empty)
         .toList
         .map(_.as[TestCC]) shouldBe empty
       ss.dropTable(tname).execute()
@@ -334,8 +338,7 @@ class ScalaCassUnitTestsAll extends ScalaCassUnitTests with ScalaCassUnitTestsVe
     ss.delete[ScalaSession.NoQuery](tname, q1).execute()
     ss.select[ScalaSession.Star](tname, q1)
       .execute()
-      .getOrElse(None)
-      .iterator
+      .getOrElse(Iterator.empty)
       .toList shouldBe empty
   }
 }

@@ -8,8 +8,8 @@ import com.google.common.util.concurrent.{ FutureCallback, Futures }
 import com.weather.scalacass.scsession.QueryBuildingBlock._
 import com.weather.scalacass.scsession.SCBatchStatement.Batchable
 
-import scala.collection.JavaConverters.AsJava
-import scala.collection.convert.{ AsJavaConverters, AsScalaConverters }
+import scala.jdk.CollectionConverters._
+//import scala.collection.convert.{ AsJavaConverters, AsScalaConverters }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 
 object SCStatement {
@@ -323,10 +323,10 @@ final case class SCSelectItStatement(
     copy(cassConsistency = CassConsistency.removeConsistency)
 }
 
-object SCSelectStatement extends AsScalaConverters {
-  def mkIteratorResponse(rs: ResultSet): Iterator[Row] =
-    asScala(rs.iterator)
-  def mkOptionResponse(rs: ResultSet): Option[Row] = Option(rs.one())
+object SCSelectStatement {
+
+  def mkIteratorResponse(rs: ResultSet): Iterator[Row] = rs.iterator.asScala
+  def mkOptionResponse(rs: ResultSet): Option[Row]     = Option(rs.one())
 
   def apply[S: CCCassFormatEncoder, Q: CCCassFormatEncoder](
       keyspace: String,
@@ -412,8 +412,7 @@ final case class SCBatchStatement private (
     private val batchType: BatchStatement.Type,
     protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
-    extends SCStatement[ResultSet]
-    with AsJavaConverters {
+    extends SCStatement[ResultSet] {
   import SCStatement.{ resultSetFutureToScalaFuture, BiMappableFuture, RightBiasedEither, SCBatchableStatement }
   import SCBatchStatement.ListEitherTraverse
 
@@ -443,7 +442,7 @@ final case class SCBatchStatement private (
   private[scalacass] def mkBatch: Result[BatchStatement] =
     statements.traverseU(_.asBatch).map { ss =>
       val bs = new BatchStatement(batchType)
-      bs.addAll(asJava(ss))
+      bs.addAll(ss.asJava)
       val scl = cassConsistency.level.getOrElse(
         sSession.session.getCluster.getConfiguration.getQueryOptions.getSerialConsistencyLevel
       )

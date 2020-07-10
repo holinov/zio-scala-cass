@@ -20,9 +20,11 @@ def addUnmanagedSourceDirsFrom(folder: String) = {
 
 testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
 //addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+scalafixDependencies in ThisBuild += "org.scala-lang.modules" %% "scala-collection-migrations" % "2.1.4"
 
 lazy val commonSettings = Seq(
   scalaVersion := "2.13.2",
+  crossScalaVersions := Seq("2.13.2", "2.12.10"),
   semanticdbEnabled := true,
   semanticdbVersion := scalafixSemanticdb.revision,
   scalacOptions ++= Seq(
@@ -36,10 +38,30 @@ lazy val commonSettings = Seq(
       "-Xfatal-warnings",
       "-Ywarn-numeric-widen",
       "-Ywarn-value-discard",
-      "-Ymacro-annotations"
-    ),
+      "-P:semanticdb:synthetics:on"
+    ) ++ (CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, 13)) => Seq("-Ymacro-annotations")
+      case Some((2, 12)) =>
+        Seq(
+          "-Xlint:adapted-args,nullary-unit,inaccessible,nullary-override,infer-any,missing-interpolator,doc-detached,private-shadow,type-parameter-shadow,poly-implicit-overload,option-implicit,delayedinit-select,by-name-right-associative,package-object-classes,unsound-match,stars-align",
+          "-Ywarn-unused:privates,locals"
+        )
+      case _ => throw new IllegalArgumentException(s"scala version not configured: ${scalaVersion.value}")
+    }),
   (scalacOptions in Test) -= "-Xfatal-warnings",
   parallelExecution in Test := false
+)
+
+lazy val macroSettings = Seq(
+  libraryDependencies ++= Seq(
+      "org.scalameta"          %% "scalameta"            % "4.3.18",
+      "org.scala-lang"         % "scala-reflect"         % scalaVersion.value,
+      "org.scala-lang"         % "scala-compiler"        % scalaVersion.value % "provided",
+      "com.datastax.cassandra" % "cassandra-driver-core" % cassandraVersion classifier "shaded"
+    ) ++ (CrossVersion.partialVersion(scalaVersion.value) match {
+      case Some((2, 10)) => Seq("org.scalamacros" %% "quasiquotes" % "2.1.1" cross CrossVersion.binary)
+      case _             => Seq.empty
+    })
 )
 
 lazy val applicationSettings = Seq(
@@ -58,11 +80,12 @@ lazy val applicationSettings = Seq(
         "com.google.guava",
         "guava"
       ),
-      "dev.zio"       %% "zio"          % "1.0.0-RC20",
-      "dev.zio"       %% "zio-streams"  % "1.0.0-RC20",
-      "dev.zio"       %% "zio-test"     % "1.0.0-RC20" % "test",
-      "dev.zio"       %% "zio-test-sbt" % "1.0.0-RC20" % "test",
-      "org.scalatest" %% "scalatest"    % "3.2.0" % "test"
+      "org.scala-lang.modules" %% "scala-collection-compat" % "2.1.6",
+      "dev.zio"                %% "zio"                     % "1.0.0-RC20",
+      "dev.zio"                %% "zio-streams"             % "1.0.0-RC20",
+      "dev.zio"                %% "zio-test"                % "1.0.0-RC20" % "test",
+      "dev.zio"                %% "zio-test-sbt"            % "1.0.0-RC20" % "test",
+      "org.scalatest"          %% "scalatest"               % "3.2.0" % "test"
     ) ++ (if (cassandraVersion startsWith "2.1.")
             Seq(
               "org.cassandraunit" % "cassandra-unit" % "2.2.2.1" % "test"
@@ -113,6 +136,7 @@ lazy val `scala-cass` = project
   .settings(commonSettings: _*)
   .settings(applicationSettings: _*)
   .settings(publishSettings: _*)
+  .settings(macroSettings: _*)
   .settings(addUnmanagedSourceDirsFrom(if (cassandraVersion startsWith "2.1.") "scala_cass21" else "scala_cass3"))
 
 addCommandAlias("fmt", "all scalafmtSbt scalafmt test:scalafmt")

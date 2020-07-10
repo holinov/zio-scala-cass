@@ -6,6 +6,7 @@ import com.datastax.driver.core.{ DataType, Row, TupleValue }
 import com.datastax.driver.core.exceptions.InvalidTypeException
 import NotRecoverable.Try2Either
 import com.google.common.reflect.{ TypeParameter, TypeToken }
+import com.weather.scalacass.NameEncoders.nameEncoder
 
 import scala.util.Try
 
@@ -16,7 +17,7 @@ trait CassFormatDecoder[T] { self =>
   private[scalacass] def extract(r: Row, name: String): From
   private[scalacass] def decode(r: Row, name: String): Result[T] =
     Try[Result[T]] {
-      val rName = NameEncoders.nameEncoder(name)
+      val rName = nameEncoder(name)
       if (r.isNull(rName))
         Left(
           new ValueNotDefinedException(
@@ -226,7 +227,7 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
         }
       process(f.listIterator)
     }
-    def extract(r: Row, name: String) = r getList (name, underlying.typeToken)
+    def extract(r: Row, name: String) = r getList (nameEncoder(name), underlying.typeToken)
     def tupleExtract(tup: TupleValue, pos: Int) =
       tup getList (pos, underlying.typeToken)
   }
@@ -256,7 +257,7 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
         }
       process(f.iterator)
     }
-    def extract(r: Row, name: String) = r getSet (name, underlying.typeToken)
+    def extract(r: Row, name: String) = r getSet (nameEncoder(name), underlying.typeToken)
     def tupleExtract(tup: TupleValue, pos: Int) =
       tup getSet (pos, underlying.typeToken)
   }
@@ -296,7 +297,7 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
         process(f.entrySet.iterator)
       }
       def extract(r: Row, name: String) =
-        r getMap (name, underlyingK.typeToken, underlyingV.typeToken)
+        r getMap (nameEncoder(name), underlyingK.typeToken, underlyingV.typeToken)
       def tupleExtract(tup: TupleValue, pos: Int) =
         tup getMap (pos, underlyingK.typeToken, underlyingV.typeToken)
     }
@@ -311,26 +312,28 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
           com.datastax.driver.core.utils.Bytes.getArray(f).toIndexedSeq.toArray
         ).toEither
       def extract(r: Row, name: String): ByteBuffer = r getBytes name
-      override def decode(r: Row, name: String): Result[Array[Byte]] =
+      override def decode(r: Row, name: String): Result[Array[Byte]] = {
+        val rName = nameEncoder(name)
         Try[Result[Array[Byte]]](
-          if (r.isNull(name))
+          if (r.isNull(rName))
             Left(
               new ValueNotDefinedException(
-                s""""$name" was not defined in ${r.getColumnDefinitions
-                  .getTable(name)}"""
+                s""""$rName" was not defined in ${r.getColumnDefinitions
+                  .getTable(rName)}"""
               )
             )
           else {
-            val cassName = r.getColumnDefinitions.getType(name).getName
+            val cassName = r.getColumnDefinitions.getType(rName).getName
             if (cassName != DataType.Name.BLOB)
               Left(
                 new InvalidTypeException(
-                  s"Column $name is a $cassName, is not a blob"
+                  s"Column $rName is a $cassName, is not a blob"
                 )
               )
-            else f2t(extract(r, name))
+            else f2t(extract(r, rName))
           }
         ).unwrap[Array[Byte]]
+      }
       def tupleExtract(tup: TupleValue, pos: Int): ByteBuffer = tup getBytes pos
       override def tupleDecode(tup: TupleValue, pos: Int): Result[Array[Byte]] =
         Try[Result[Array[Byte]]](
