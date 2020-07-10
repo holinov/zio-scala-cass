@@ -1,6 +1,6 @@
 package com.weather.scalacass.scsession
 
-import com.weather.scalacass.ScalaSession
+import com.weather.scalacass.{ CCCassFormatEncoder, NameEncoders, ScalaSession }
 
 class SelectUnitTests extends ActionUnitTests {
   case class SelectiveSelect(i: Int)

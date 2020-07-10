@@ -1,11 +1,41 @@
 package com.weather.scalacass
 
+import com.weather.scalacass.NameEncoders._
 import shapeless.labelled.FieldType
 import shapeless.{ ::, HList, HNil, LabelledGeneric, Lazy, Witness }
 
 abstract class DerivedCCCassFormatEncoder[F] extends CCCassFormatEncoder[F]
 
+object NameEncoders {
+  trait NameEncoder {
+    def apply(name: String): String
+  }
+
+  val identityEncoder: NameEncoder  = (name: String) => name
+  val upperCaseEncoder: NameEncoder = _.toUpperCase()
+  val snakeCaseEncoder: NameEncoder = snakify
+
+  private[this] val _camel1 = "([A-Z]+)([A-Z][a-z])".r
+  private[this] val _camel2 = "([a-z\\d])([A-Z])".r
+  private def snakify(field: String): String =
+    _camel2.replaceAllIn(_camel1.replaceAllIn(field, "$1_$2"), "$1_$2").toLowerCase
+
+//  private def bbq(field: String): String = _camel2.replaceAllIn(_camel1.replaceAllIn(field, "$1-$2"), "$1-$2").toLowerCase
+//  private def camelize(name: String, firstIsUpper: Boolean = false): String = {
+//    val chars = name.toCharArray
+//    for (i <- 0 until chars.length - 1) {
+//      if (chars(i) == '_') chars(i + 1) = chars(i + 1).toUpper
+//    }
+//    if (firstIsUpper) chars(0) = chars(0).toUpper
+//    new String(chars.filter(_ != '_'))
+//  }
+
+  private var _nameEncoder: NameEncoder      = identityEncoder
+  def setNameEncoder(enc: NameEncoder): Unit = _nameEncoder = enc
+  def nameEncoder: NameEncoder               = _nameEncoder
+}
 object DerivedCCCassFormatEncoder {
+
   implicit val hNilEncoder: DerivedCCCassFormatEncoder[HNil] =
     new DerivedCCCassFormatEncoder[HNil] {
       def encodeWithName(f: HNil)  = Right(Nil)
@@ -21,17 +51,18 @@ object DerivedCCCassFormatEncoder {
       tdT: Lazy[DerivedCCCassFormatEncoder[T]]
   ): DerivedCCCassFormatEncoder[FieldType[K, H] :: T] =
     new DerivedCCCassFormatEncoder[FieldType[K, H] :: T] {
+      private lazy val wName = nameEncoder(w.value.name)
       def encodeWithName(f: FieldType[K, H] :: T) =
         for {
           h <- tdH.value.encode(f.head)
           t <- tdT.value.encodeWithName(f.tail)
-        } yield (w.value.name.toString, h) :: t
+        } yield (wName, h) :: t
       def encodeWithQuery(f: FieldType[K, H] :: T) =
         for {
           h <- tdH.value.encode(f.head)
           t <- tdT.value.encodeWithQuery(f.tail)
-        } yield (tdH.value.withQuery(f.head, w.value.name.toString), h) :: t
-      def names = w.value.name.toString :: tdT.value.names
+        } yield (tdH.value.withQuery(f.head, wName), h) :: t
+      def names = wName :: tdT.value.names
       def types = tdH.value.cassType :: tdT.value.types
     }
 

@@ -18,6 +18,9 @@ def addUnmanagedSourceDirsFrom(folder: String) = {
   Seq(addSourceFilesTo(Compile), addSourceFilesTo(Test))
 }
 
+testFrameworks += new TestFramework("zio.test.sbt.ZTestFramework")
+//addCompilerPlugin("com.olegpy" %% "better-monadic-for" % "0.3.1")
+
 lazy val commonSettings = Seq(
   scalaVersion := "2.13.2",
   semanticdbEnabled := true,
@@ -55,7 +58,11 @@ lazy val applicationSettings = Seq(
         "com.google.guava",
         "guava"
       ),
-      "org.scalatest" %% "scalatest" % "3.2.0" % "test"
+      "dev.zio"       %% "zio"          % "1.0.0-RC20",
+      "dev.zio"       %% "zio-streams"  % "1.0.0-RC20",
+      "dev.zio"       %% "zio-test"     % "1.0.0-RC20" % "test",
+      "dev.zio"       %% "zio-test-sbt" % "1.0.0-RC20" % "test",
+      "org.scalatest" %% "scalatest"    % "3.2.0" % "test"
     ) ++ (if (cassandraVersion startsWith "2.1.")
             Seq(
               "org.cassandraunit" % "cassandra-unit" % "2.2.2.1" % "test"
