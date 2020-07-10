@@ -65,8 +65,9 @@ lazy val macroSettings = Seq(
 )
 
 lazy val applicationSettings = Seq(
-  name := "ScalaCass",
-  organization := "com.github.thurstonsand",
+  name := "zio-scala-cass",
+  moduleName := "zio-scala-cass",
+  organization := "com.media.gr",
   description := "a wrapper for the Java Cassandra driver that uses case classes to simplify and codify creating cached statements in a type-safe manner",
   version := s"$baseVersion",
   libraryDependencies ++= Seq(
@@ -107,6 +108,7 @@ lazy val noPublishSettings = Seq(
 )
 
 lazy val publishSettings = Seq(
+  licenses := Seq("MIT" -> url("http://www.opensource.org/licenses/mit-license.php")),
   updateOptions := updateOptions.value.withGigahorse(false),
   Compile / packageDoc / publishArtifact := false,
   credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
@@ -117,8 +119,6 @@ lazy val publishSettings = Seq(
 lazy val `scala-cass` = project
   .in(file("."))
   .settings(
-    moduleName := "zio-scala-cass",
-    organization := "com.media.gr",
     sourceGenerators in Compile += (sourceManaged in Compile).map(Boilerplate.gen).taskValue
   )
   .settings(commonSettings: _*)
