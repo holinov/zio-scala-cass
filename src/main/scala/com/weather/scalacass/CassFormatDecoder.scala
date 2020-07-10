@@ -15,17 +15,18 @@ trait CassFormatDecoder[T] { self =>
   private[scalacass] def f2t(f: From): Result[T]
   private[scalacass] def extract(r: Row, name: String): From
   private[scalacass] def decode(r: Row, name: String): Result[T] =
-    Try[Result[T]](
-      if (r.isNull(name))
+    Try[Result[T]] {
+      val rName = NameEncoders.nameEncoder(name)
+      if (r.isNull(rName))
         Left(
           new ValueNotDefinedException(
-            s""""$name" was not defined in ${r.getColumnDefinitions.getTable(
-              name
+            s""""$rName" was not defined in ${r.getColumnDefinitions.getTable(
+              rName
             )}"""
           )
         )
-      else f2t(extract(r, name))
-    ).unwrap[T]
+      else f2t(extract(r, rName))
+    }.unwrap[T]
   private[scalacass] def tupleExtract(tup: TupleValue, pos: Int): From
   private[scalacass] def tupleDecode(tup: TupleValue, pos: Int): Result[T] =
     Try[Result[T]](

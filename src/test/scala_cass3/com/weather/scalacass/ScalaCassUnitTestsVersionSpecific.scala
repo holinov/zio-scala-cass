@@ -20,6 +20,8 @@ trait ScalaCassUnitTestsVersionSpecific { this: ScalaCassUnitTests =>
 }
 
 class JodaScalaCassUnitTests extends ScalaCassUnitTests {
+  NameEncoders.setNameEncoder(NameEncoders.snakeCaseEncoder)
+
   override def beforeAll(): Unit = {
     super.beforeAll()
     com.weather.scalacass.joda.register(client.cluster)
