@@ -1,4 +1,4 @@
-val baseVersion       = "1.0.0"
+val baseVersion       = "1.0.2"
 val cassandra3Version = "3.7.1"
 val cassandra2Version = "2.1.10.3"
 val cassandraVersion = sys.props.getOrElse("cassandra-driver.version", cassandra3Version) match {
@@ -101,16 +101,9 @@ lazy val applicationSettings = Seq(
             ))
 )
 
-lazy val noPublishSettings = Seq(
-  publish := ((): Unit),
-  publishLocal := ((): Unit),
-  publishArtifact := false
-)
-
 lazy val publishSettings = Seq(
   licenses := Seq("MIT" -> url("http://www.opensource.org/licenses/mit-license.php")),
-  updateOptions := updateOptions.value.withGigahorse(false),
-  Compile / packageDoc / publishArtifact := false,
+  publishMavenStyle := true,
   credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
   publishTo := Some("Gr Nexus" at "http://nexus.infra.guru:8081/repository/maven_private/")
       .map(_.withAllowInsecureProtocol(true))
