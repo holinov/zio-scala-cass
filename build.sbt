@@ -1,4 +1,4 @@
-val baseVersion       = "4.0.0"
+val baseVersion       = "1.0.0"
 val cassandra3Version = "3.7.1"
 val cassandra2Version = "2.1.10.3"
 val cassandraVersion = sys.props.getOrElse("cassandra-driver.version", cassandra3Version) match {
@@ -68,7 +68,7 @@ lazy val applicationSettings = Seq(
   name := "ScalaCass",
   organization := "com.github.thurstonsand",
   description := "a wrapper for the Java Cassandra driver that uses case classes to simplify and codify creating cached statements in a type-safe manner",
-  version := s"$baseVersion-$cassandraVersion",
+  version := s"$baseVersion",
   libraryDependencies ++= Seq(
       "com.google.code.findbugs" % "jsr305"                % "3.0.1" % "provided", // Intellij does not like "compile-internal, test-internal", use "provided" instead
       "org.joda"                 % "joda-convert"          % "1.8.1" % "provided", // Intellij does not like "compile-internal, test-internal", use "provided" instead
@@ -107,30 +107,18 @@ lazy val noPublishSettings = Seq(
 )
 
 lazy val publishSettings = Seq(
-  homepage := Some(url("https://github.com/thurstonsand")),
-  licenses := Seq("MIT" -> url("http://www.opensource.org/licenses/mit-license.php")),
-  pomExtra :=
-    <scm>
-      <url>git@github.com/thurstonsand/scala-cass.git</url>
-      <connection>scm:git:git@github.com/thurstonsand/scala-cass.git</connection>
-    </scm>
-      <developers>
-        <developer>
-          <id>thurstonsand</id>
-          <name>Thurston Sandberg</name>
-          <url>https://github.com/thurstonsand</url>
-        </developer>
-      </developers>,
-  publishMavenStyle := true,
-  pomIncludeRepository := (_ => false),
-  bintrayReleaseOnPublish in ThisBuild := false,
-  bintrayPackageLabels := Seq("cassandra")
+  updateOptions := updateOptions.value.withGigahorse(false),
+  Compile / packageDoc / publishArtifact := false,
+  credentials += Credentials(Path.userHome / ".sbt" / ".credentials"),
+  publishTo := Some("Gr Nexus" at "http://nexus.infra.guru:8081/repository/maven_private/")
+      .map(_.withAllowInsecureProtocol(true))
 )
 
 lazy val `scala-cass` = project
   .in(file("."))
   .settings(
-    moduleName := "scala-cass",
+    moduleName := "zio-scala-cass",
+    organization := "com.media.gr",
     sourceGenerators in Compile += (sourceManaged in Compile).map(Boilerplate.gen).taskValue
   )
   .settings(commonSettings: _*)
