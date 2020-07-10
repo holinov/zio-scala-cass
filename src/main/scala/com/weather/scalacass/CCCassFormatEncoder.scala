@@ -13,7 +13,7 @@ object NameEncoders {
 
   val identityEncoder: NameEncoder  = (name: String) => name
   val upperCaseEncoder: NameEncoder = _.toUpperCase()
-  val snakeCaseEncoder: NameEncoder = snakify
+  val snakeCaseEncoder: NameEncoder = snakify(_)
 
   private[this] val _camel1 = "([A-Z]+)([A-Z][a-z])".r
   private[this] val _camel2 = "([a-z\\d])([A-Z])".r
