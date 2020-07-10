@@ -14,7 +14,7 @@ def addUnmanagedSourceDirsFrom(folder: String) = {
   def addSourceFilesTo(conf: Configuration) =
     unmanagedSourceDirectories in conf := {
       val sds = (unmanagedSourceDirectories in conf).value
-      val sd = (sourceDirectory in conf).value
+      val sd  = (sourceDirectory in conf).value
       sds :+ new java.io.File(sd, folder)
     }
 
