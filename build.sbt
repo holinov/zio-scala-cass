@@ -61,14 +61,15 @@ lazy val commonSettings = Seq(
 //lazy val macroSettings = Seq(
 //  libraryDependencies ++= (CrossVersion.partialVersion(scalaVersion.value) match {
 //      case Some((2, 10)) =>
-//        Seq(
-//          "org.scalameta"          %% "scalameta"            % "4.3.18",
-//          "org.scala-lang"         % "scala-reflect"         % scalaVersion.value,
-//          "org.scala-lang"         % "scala-compiler"        % scalaVersion.value % "provided",
+//Seq(
+//    "org.scalameta" %% "scalameta" % "4.3.18",
+//    "org.scala-lang" % "scala-reflect" % scalaVersion.value,
+//    "org.scala-lang" % "scala-compiler" % scalaVersion.value % "provided",
 //          "com.datastax.cassandra" % "cassandra-driver-core" % cassandraVersion classifier "shaded",
-//          "org.scalamacros"        %% "quasiquotes"          % "2.1.1" cross CrossVersion.binary
-//        )
-//      case _ => Seq.empty
+//
+"org.scalamacros" %% "quasiquotes" % "2.1.1" cross CrossVersion.binary
+//)
+//    case _ => Seq.empty
 //    })
 //)
 
