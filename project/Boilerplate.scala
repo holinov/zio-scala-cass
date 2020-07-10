@@ -15,21 +15,21 @@ object Boilerplate {
   implicit class BlockHelper(val sc: StringContext) extends AnyVal {
     def block(args: Any*): String = {
       val interpolated = sc.standardInterpolator(treatEscapes, args)
-      val rawLines = interpolated.split('\n')
+      val rawLines     = interpolated.split('\n')
       val trimmedLines = rawLines.map(_.dropWhile(_.isWhitespace))
       trimmedLines.mkString("\n")
     }
   }
 
-  val header = "// auto-generated boilerplate"
+  val header   = "// auto-generated boilerplate"
   val maxArity = 22
 
   class TemplateVals(val arity: Int) {
     val synTypes = (0 until arity).map(n => s"A$n")
-    val synVals = (0 until arity).map(n => s"a$n")
-    val `A..N` = synTypes.mkString(", ")
-    val `a..n` = synVals.mkString(", ")
-    val `_.._` = Seq.fill(arity)("_").mkString(", ")
+    val synVals  = (0 until arity).map(n => s"a$n")
+    val `A..N`   = synTypes.mkString(", ")
+    val `a..n`   = synVals.mkString(", ")
+    val `_.._`   = Seq.fill(arity)("_").mkString(", ")
     val `(A..N)` = if (arity == 1) "Tuple1[A0]" else synTypes.mkString("(", ", ", ")")
     val `(_.._)` = if (arity == 1) "Tuple1[_]" else Seq.fill(arity)("_").mkString("(", ", ", ")")
     val `(a..n)` = if (arity == 1) "Tuple1(a)" else synVals.mkString("(", ", ", ")")
@@ -53,10 +53,10 @@ object Boilerplate {
     def range: IndexedSeq[Int] = 1 to maxArity
     def body: String = {
       val headerLines = header.split('\n')
-      val raw = range.map(n => content(new TemplateVals(n)).split('\n').filterNot(_.isEmpty))
-      val preBody = raw.head.takeWhile(_.startsWith("|")).map(_.tail)
-      val instances = raw.flatMap(_.filter(_.startsWith("-")).map(_.tail))
-      val postBody = raw.head.dropWhile(_.startsWith("|")).dropWhile(_.startsWith("-")).map(_.tail)
+      val raw         = range.map(n => content(new TemplateVals(n)).split('\n').filterNot(_.isEmpty))
+      val preBody     = raw.head.takeWhile(_.startsWith("|")).map(_.tail)
+      val instances   = raw.flatMap(_.filter(_.startsWith("-")).map(_.tail))
+      val postBody    = raw.head.dropWhile(_.startsWith("|")).dropWhile(_.startsWith("-")).map(_.tail)
       (headerLines ++ preBody ++ instances ++ postBody).mkString("\n")
     }
   }
@@ -72,9 +72,10 @@ object Boilerplate {
       val instances = synTypes.map(tpe => s"decode$tpe")
 
       val instanceMembers = synTypes.map(tpe => s"decode$tpe: CassFormatDecoder[$tpe]").mkString(", ")
-      val names = synTypes.map(tpe => s"name$tpe")
-      val memberNames = names.map(n => s"$n: String").mkString(", ")
-      val results = (synVals zip instances zip names).map { case ((v, i), name) => s"$v <- $i.decode(r, $name)" }.mkString("; ")
+      val names           = synTypes.map(tpe => s"name$tpe")
+      val memberNames     = names.map(n => s"$n: String").mkString(", ")
+      val results =
+        (synVals zip instances zip names).map { case ((v, i), name) => s"$v <- $i.decode(r, $name)" }.mkString("; ")
       val fnCombine = s"f(${`a..n`})"
 
       block"""
@@ -106,16 +107,20 @@ object Boilerplate {
     def content(tv: TemplateVals): String = {
       import tv._
 
-      val names = synTypes.map(tpe => s"name$tpe")
+      val names        = synTypes.map(tpe => s"name$tpe")
       val encodedTypes = synTypes.map(tpe => s"encoded$tpe")
-      val instances = synTypes.map(tpe => s"encode$tpe")
+      val instances    = synTypes.map(tpe => s"encode$tpe")
 
-      val memberNames = names.map(n => s"$n: String").mkString(", ")
+      val memberNames     = names.map(n => s"$n: String").mkString(", ")
       val instanceMembers = synTypes.map(tpe => s"encode$tpe: CassFormatEncoder[$tpe]").mkString(", ")
-      val cassTypes = instances.map(i => s"$i.cassType").mkString(", ")
-      val results = (encodedTypes zip instances zip synVals).map { case ((encodedTpe, i), v) => s"$encodedTpe <- $i.encode($v)" }.mkString("; ")
+      val cassTypes       = instances.map(i => s"$i.cassType").mkString(", ")
+      val results = (encodedTypes zip instances zip synVals)
+        .map { case ((encodedTpe, i), v) => s"$encodedTpe <- $i.encode($v)" }
+        .mkString("; ")
       val namesCombined = (names zip encodedTypes).map { case (n, encodedTpe) => s"($n, $encodedTpe)" }.mkString(", ")
-      val queryCombined = (instances zip synVals zip names zip encodedTypes).map { case (((i, v), name), encodedTpe) => s"($i.withQuery($v, $name), $encodedTpe)" }.mkString(", ")
+      val queryCombined = (instances zip synVals zip names zip encodedTypes)
+        .map { case (((i, v), name), encodedTpe) => s"($i.withQuery($v, $name), $encodedTpe)" }
+        .mkString(", ")
 
       block"""
         |package com.weather.scalacass

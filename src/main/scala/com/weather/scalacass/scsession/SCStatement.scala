@@ -4,31 +4,35 @@ package scsession
 import java.util.concurrent.Executor
 
 import com.datastax.driver.core._
-import com.google.common.util.concurrent.{FutureCallback, Futures}
+import com.google.common.util.concurrent.{ FutureCallback, Futures }
 import com.weather.scalacass.scsession.QueryBuildingBlock._
 import com.weather.scalacass.scsession.SCBatchStatement.Batchable
 
 import scala.collection.JavaConverters.AsJava
-import scala.collection.convert.{AsJavaConverters, AsScalaConverters}
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.collection.convert.{ AsJavaConverters, AsScalaConverters }
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 
 object SCStatement {
   private[scalacass] implicit def resultSetFutureToScalaFuture(
-    f: ResultSetFuture
+      f: ResultSetFuture
   )(implicit ec: ExecutionContext): Future[ResultSet] = {
     val p = Promise[ResultSet]()
-    Futures.addCallback(f, new FutureCallback[ResultSet] {
-      def onSuccess(r: ResultSet): Unit = { p success r; (): Unit }
-      def onFailure(t: Throwable): Unit = { p failure t; (): Unit }
-    }, new Executor {
-      override def execute(command: Runnable): Unit = ec.execute(command)
-    })
+    Futures.addCallback(
+      f,
+      new FutureCallback[ResultSet] {
+        def onSuccess(r: ResultSet): Unit = { p success r; (): Unit }
+        def onFailure(t: Throwable): Unit = { p failure t; (): Unit }
+      },
+      new Executor {
+        override def execute(command: Runnable): Unit = ec.execute(command)
+      }
+    )
     p.future
   }
 
   private[scalacass] implicit class BiMappableFuture[T](val f: Future[T]) {
     def bimap[LL, RR](lfn: Throwable => LL, rfn: T => RR)(
-      implicit ec: ExecutionContext
+        implicit ec: ExecutionContext
     ): Future[Either[LL, RR]] =
       f.map(res => Right(rfn(res))).recover { case t => Left(lfn(t)) }
     def attempt(implicit ec: ExecutionContext): Future[Result[T]] =
@@ -36,7 +40,7 @@ object SCStatement {
   }
 
   private[scalacass] implicit class RightBiasedEither[+A, +B](
-    val e: Either[A, B]
+      private val e: Either[A, B]
   ) extends AnyVal {
     def map[C](fn: B => C): Either[A, C] = e.map(fn)
     def flatMap[AA >: A, C](fn: B => Either[AA, C]): Either[AA, C] =
@@ -46,18 +50,14 @@ object SCStatement {
         fn(b); (): Unit
       case Left(_) =>
     }
-    def getOrElse[BB >: B](or: => BB): BB = e.getOrElse(or)
+    def getOrElse[BB >: B](or: => BB): BB   = e.getOrElse(or)
     def valueOr[BB >: B](orFn: A => BB): BB = e.fold(orFn, identity)
-    def toOption: Option[B] = e.toOption
+    def toOption: Option[B]                 = e.toOption
   }
   type SCBatchableStatement = SCStatement[ResultSet] with Batchable
 }
 trait SCStatement[Response] extends Product with Serializable {
-  import SCStatement.{
-    RightBiasedEither,
-    BiMappableFuture,
-    resultSetFutureToScalaFuture
-  }
+  import SCStatement.{ resultSetFutureToScalaFuture, BiMappableFuture, RightBiasedEither }
 
   protected def sSession: ScalaSession
 
@@ -95,9 +95,7 @@ trait SCStatement[Response] extends Product with Serializable {
           }
     }
 
-  private def replaceFirstWithoutRegex(str: String,
-                                       target: String,
-                                       replacement: String): String = {
+  private def replaceFirstWithoutRegex(str: String, target: String, replacement: String): String = {
     val idx = str.indexOf(target)
     if (idx === -1) str
     else
@@ -111,9 +109,7 @@ trait SCStatement[Response] extends Product with Serializable {
 
   protected[scalacass] def stringifyQuery: Result[String] = buildQuery.map {
     case (statement, anyrefArgs) =>
-      replaceqWithValue(statement, anyrefArgs) + cassConsistency.level.fold("")(
-        cl => s" <CONSISTENCY $cl>"
-      )
+      replaceqWithValue(statement, anyrefArgs) + cassConsistency.level.fold("")(cl => s" <CONSISTENCY $cl>")
   }
   override def toString: String =
     stringifyQuery.fold(
@@ -123,15 +119,15 @@ trait SCStatement[Response] extends Product with Serializable {
 }
 
 final case class SCInsertStatement private (
-  private val preambleBlock: Preamble,
-  private val insertBlock: QueryBuildingBlock,
-  private val ifBlock: If,
-  private val usingBlock: TTLTimestamp,
-  protected val cassConsistency: CassConsistency
+    private val preambleBlock: Preamble,
+    private val insertBlock: QueryBuildingBlock,
+    private val ifBlock: If,
+    private val usingBlock: TTLTimestamp,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCStatement[ResultSet]
     with SCBatchStatement.Batchable {
-  def ifNotExists: SCInsertStatement = copy(ifBlock = If.IfNotExists)
+  def ifNotExists: SCInsertStatement   = copy(ifBlock = If.IfNotExists)
   def noConditional: SCInsertStatement = copy(ifBlock = If.NoConditional)
 
   def usingTTL(ttl: Int): SCInsertStatement =
@@ -156,10 +152,7 @@ final case class SCInsertStatement private (
   protected def mkResponse(rs: ResultSet): ResultSet = rs
 }
 object SCInsertStatement {
-  def apply[I: CCCassFormatEncoder](keyspace: String,
-                                    table: String,
-                                    insertable: I,
-                                    sSession: ScalaSession) =
+  def apply[I: CCCassFormatEncoder](keyspace: String, table: String, insertable: I, sSession: ScalaSession) =
     new SCInsertStatement(
       Preamble("INSERT INTO", keyspace, table),
       CCBlockInsert(insertable),
@@ -170,12 +163,12 @@ object SCInsertStatement {
 }
 
 final case class SCUpdateStatement private (
-  private val preamble: Preamble,
-  private val updateBlock: QueryBuildingBlock,
-  private val whereBlock: QueryBuildingBlock,
-  private val usingBlock: TTLTimestamp,
-  private val ifBlock: If,
-  protected val cassConsistency: CassConsistency
+    private val preamble: Preamble,
+    private val updateBlock: QueryBuildingBlock,
+    private val whereBlock: QueryBuildingBlock,
+    private val usingBlock: TTLTimestamp,
+    private val ifBlock: If,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCStatement[ResultSet]
     with SCBatchStatement.Batchable
@@ -208,11 +201,11 @@ final case class SCUpdateStatement private (
 }
 object SCUpdateStatement {
   def apply[U: CCCassFormatEncoder, Q: CCCassFormatEncoder](
-    keyspace: String,
-    table: String,
-    updateable: U,
-    where: Q,
-    sSession: ScalaSession
+      keyspace: String,
+      table: String,
+      updateable: U,
+      where: Q,
+      sSession: ScalaSession
   ) =
     new SCUpdateStatement(
       Preamble("UPDATE", keyspace, table),
@@ -225,11 +218,11 @@ object SCUpdateStatement {
 }
 
 final case class SCDeleteStatement private (
-  private val deleteBlock: QueryBuildingBlock,
-  private val whereBlock: QueryBuildingBlock,
-  private val usingBlock: TTLTimestamp,
-  private val ifBlock: If,
-  protected val cassConsistency: CassConsistency
+    private val deleteBlock: QueryBuildingBlock,
+    private val whereBlock: QueryBuildingBlock,
+    private val usingBlock: TTLTimestamp,
+    private val ifBlock: If,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCStatement[ResultSet]
     with SCBatchStatement.Batchable {
@@ -256,10 +249,10 @@ final case class SCDeleteStatement private (
 }
 object SCDeleteStatement {
   def apply[D: CCCassFormatEncoder, Q: CCCassFormatEncoder](
-    keyspace: String,
-    table: String,
-    where: Q,
-    sSession: ScalaSession
+      keyspace: String,
+      table: String,
+      where: Q,
+      sSession: ScalaSession
   ) =
     new SCDeleteStatement(
       CCBlockDelete[D](Preamble("DELETE", keyspace, table)),
@@ -271,8 +264,8 @@ object SCDeleteStatement {
 }
 
 abstract class SCSelectStatement[F[_]](
-  private val _mkResponse: ResultSet => F[Row],
-  private val limitBlock: Limit
+    private val _mkResponse: ResultSet => F[Row],
+    private val limitBlock: Limit
 ) extends SCStatement[F[Row]] {
   implicit protected def sSession: ScalaSession
   protected def selectBlock: QueryBuildingBlock
@@ -285,10 +278,10 @@ abstract class SCSelectStatement[F[_]](
 }
 
 final case class SCSelectOneStatement(
-  protected val selectBlock: QueryBuildingBlock,
-  protected val whereBlock: QueryBuildingBlock,
-  protected val filteringBlock: Filtering,
-  protected val cassConsistency: CassConsistency
+    protected val selectBlock: QueryBuildingBlock,
+    protected val whereBlock: QueryBuildingBlock,
+    protected val filteringBlock: Filtering,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCSelectStatement[Option](
       SCSelectStatement.mkOptionResponse,
@@ -306,18 +299,18 @@ final case class SCSelectOneStatement(
 }
 
 final case class SCSelectItStatement(
-  protected val selectBlock: QueryBuildingBlock,
-  protected val whereBlock: QueryBuildingBlock,
-  protected val filteringBlock: Filtering,
-  private val limitBlock: Limit,
-  protected val cassConsistency: CassConsistency
+    protected val selectBlock: QueryBuildingBlock,
+    protected val whereBlock: QueryBuildingBlock,
+    protected val filteringBlock: Filtering,
+    private val limitBlock: Limit,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCSelectStatement[Iterator](
       SCSelectStatement.mkIteratorResponse,
       limitBlock
     ) {
   def limit(n: Int): SCSelectItStatement = copy(limitBlock = Limit.LimitN(n))
-  def noLimit: SCSelectItStatement = copy(limitBlock = Limit.NoLimit)
+  def noLimit: SCSelectItStatement       = copy(limitBlock = Limit.NoLimit)
 
   def allowFiltering: SCSelectItStatement =
     copy(filteringBlock = Filtering.AllowFiltering)
@@ -331,16 +324,15 @@ final case class SCSelectItStatement(
 }
 
 object SCSelectStatement extends AsScalaConverters {
-  def mkIteratorResponse(rs: ResultSet): Iterator[Row] = {
+  def mkIteratorResponse(rs: ResultSet): Iterator[Row] =
     asScala(rs.iterator)
-  }
   def mkOptionResponse(rs: ResultSet): Option[Row] = Option(rs.one())
 
   def apply[S: CCCassFormatEncoder, Q: CCCassFormatEncoder](
-    keyspace: String,
-    table: String,
-    where: Q,
-    sSession: ScalaSession
+      keyspace: String,
+      table: String,
+      where: Q,
+      sSession: ScalaSession
   ) =
     SCSelectItStatement(
       CCBlockSelect[S](Preamble("SELECT", keyspace, table)),
@@ -351,10 +343,10 @@ object SCSelectStatement extends AsScalaConverters {
     )(sSession)
 
   def applyOne[S: CCCassFormatEncoder, Q: CCCassFormatEncoder](
-    keyspace: String,
-    table: String,
-    where: Q,
-    sSession: ScalaSession
+      keyspace: String,
+      table: String,
+      where: Q,
+      sSession: ScalaSession
   ) =
     SCSelectOneStatement(
       CCBlockSelect[S](Preamble("SELECT", keyspace, table)),
@@ -369,8 +361,8 @@ trait SCRaw {
   protected def queryBuildingBlocks: Seq[QueryBuildingBlock] = Seq(rawBlock)
 }
 final case class SCRawStatement private[scsession] (
-  protected val rawBlock: Raw,
-  protected val cassConsistency: CassConsistency
+    protected val rawBlock: Raw,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCRaw
     with SCStatement[ResultSet]
@@ -383,9 +375,9 @@ final case class SCRawStatement private[scsession] (
   protected def mkResponse(rs: ResultSet): ResultSet = rs
 }
 final case class SCRawSelectStatement[F[_]] private[scsession] (
-  private val _mkResponse: ResultSet => F[Row],
-  protected val rawBlock: Raw,
-  protected val cassConsistency: CassConsistency
+    private val _mkResponse: ResultSet => F[Row],
+    protected val rawBlock: Raw,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCRaw
     with SCStatement[F[Row]] {
@@ -398,21 +390,15 @@ final case class SCRawSelectStatement[F[_]] private[scsession] (
 }
 
 object SCRaw {
-  def apply(strRepr: String,
-            anyrefArgs: List[AnyRef],
-            sSession: ScalaSession): SCRawStatement =
+  def apply(strRepr: String, anyrefArgs: List[AnyRef], sSession: ScalaSession): SCRawStatement =
     SCRawStatement(Raw(strRepr, anyrefArgs), CassConsistency.Default)(sSession)
-  def applyIterator(strRepr: String,
-                    anyrefArgs: List[AnyRef],
-                    sSession: ScalaSession): SCRawSelectStatement[Iterator] =
+  def applyIterator(strRepr: String, anyrefArgs: List[AnyRef], sSession: ScalaSession): SCRawSelectStatement[Iterator] =
     new SCRawSelectStatement[Iterator](
       SCSelectStatement.mkIteratorResponse,
       Raw(strRepr, anyrefArgs),
       CassConsistency.Default
     )(sSession)
-  def applyOne(strRepr: String,
-               anyrefArgs: List[AnyRef],
-               sSession: ScalaSession): SCRawSelectStatement[Option] =
+  def applyOne(strRepr: String, anyrefArgs: List[AnyRef], sSession: ScalaSession): SCRawSelectStatement[Option] =
     new SCRawSelectStatement[Option](
       SCSelectStatement.mkOptionResponse,
       Raw(strRepr, anyrefArgs),
@@ -421,19 +407,14 @@ object SCRaw {
 }
 
 final case class SCBatchStatement private (
-  private val statements: List[SCStatement.SCBatchableStatement],
-  private val usingBlock: TTLTimestamp,
-  private val batchType: BatchStatement.Type,
-  protected val cassConsistency: CassConsistency
+    private val statements: List[SCStatement.SCBatchableStatement],
+    private val usingBlock: TTLTimestamp,
+    private val batchType: BatchStatement.Type,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCStatement[ResultSet]
     with AsJavaConverters {
-  import SCStatement.{
-    RightBiasedEither,
-    BiMappableFuture,
-    resultSetFutureToScalaFuture,
-    SCBatchableStatement
-  }
+  import SCStatement.{ resultSetFutureToScalaFuture, BiMappableFuture, RightBiasedEither, SCBatchableStatement }
   import SCBatchStatement.ListEitherTraverse
 
   protected def mkResponse(rs: ResultSet): ResultSet =
@@ -450,13 +431,11 @@ final case class SCBatchStatement private (
     (for {
       tup <- statements.traverseU(_.stringifyQuery)
       queryStatements = tup.map(t => s"    $t;").mkString("\n")
-      stringified = s"""
+      stringified     = s"""
                      |  BEGIN $batchType BATCH
                      |$queryStatements
                      |  APPLY BATCH;
-                     |${cassConsistency.level.fold("")(
-                         cl => s"  <CONSISTENCY $cl>\n"
-                       )}""".stripMargin
+                     |${cassConsistency.level.fold("")(cl => s"  <CONSISTENCY $cl>\n")}""".stripMargin
     } yield s"${getClass.getSimpleName}($stringified)")
       .valueOr(ex => s"problem generating statement: $ex")
 
@@ -475,7 +454,7 @@ final case class SCBatchStatement private (
     mkBatch.map(sSession.session.execute)
 
   override def executeAsync()(
-    implicit ec: ExecutionContext
+      implicit ec: ExecutionContext
   ): Future[Result[ResultSet]] =
     mkBatch.fold(
       Future.failed,
@@ -516,8 +495,7 @@ object SCBatchStatement {
 
   }
 
-  def apply(statements: List[SCStatement.SCBatchableStatement],
-            sSession: ScalaSession): SCBatchStatement =
+  def apply(statements: List[SCStatement.SCBatchableStatement], sSession: ScalaSession): SCBatchStatement =
     new SCBatchStatement(
       statements,
       TTLTimestamp.Neither,
@@ -526,8 +504,7 @@ object SCBatchStatement {
     )(sSession)
 
   // should be `private`, but the compiler thinks this is not being used (which it is), so setting to `protected` to work around bug
-  protected implicit class ListEitherTraverse[LV](val list: List[LV])
-      extends AnyVal {
+  protected implicit class ListEitherTraverse[LV](private val list: List[LV]) extends AnyVal {
     def traverseU[L, R](f: LV => Either[L, R]): Either[L, List[R]] = {
       val builder = List.newBuilder[R]
 
@@ -545,8 +522,8 @@ object SCBatchStatement {
 }
 
 final case class SCCreateKeyspaceStatement private (
-  private val createKeyspaceBlock: CreateKeyspace,
-  protected val cassConsistency: CassConsistency
+    private val createKeyspaceBlock: CreateKeyspace,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCStatement[ResultSet] {
   protected def mkResponse(rs: ResultSet): ResultSet = rs
@@ -572,17 +549,15 @@ final case class SCCreateKeyspaceStatement private (
     )
 }
 object SCCreateKeyspaceStatement {
-  def apply(keyspace: String,
-            properties: String,
-            sSession: ScalaSession): SCCreateKeyspaceStatement =
+  def apply(keyspace: String, properties: String, sSession: ScalaSession): SCCreateKeyspaceStatement =
     new SCCreateKeyspaceStatement(
       CreateKeyspace(keyspace, If.NoConditional, properties),
       CassConsistency.Default
     )(sSession)
 }
 final case class SCDropKeyspaceStatement private (
-  private val dropKeyspaceBlock: DropKeyspace,
-  protected val cassConsistency: CassConsistency
+    private val dropKeyspaceBlock: DropKeyspace,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCStatement[ResultSet] {
   protected def mkResponse(rs: ResultSet): ResultSet = rs
@@ -599,9 +574,9 @@ object SCDropKeyspaceStatement {
 }
 
 final case class SCCreateTableStatement private (
-  private val createTable: QueryBuildingBlock,
-  private val tableProperties: TableProperties,
-  protected val cassConsistency: CassConsistency
+    private val createTable: QueryBuildingBlock,
+    private val tableProperties: TableProperties,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCStatement[ResultSet] {
   protected def mkResponse(rs: ResultSet): ResultSet = rs
@@ -614,11 +589,11 @@ final case class SCCreateTableStatement private (
 }
 object SCCreateTableStatement {
   def apply[T: CCCassFormatEncoder](
-    keyspace: String,
-    name: String,
-    numPartitionKeys: Int,
-    numClusteringKeys: Int,
-    sSession: ScalaSession
+      keyspace: String,
+      name: String,
+      numPartitionKeys: Int,
+      numClusteringKeys: Int,
+      sSession: ScalaSession
   ): SCCreateTableStatement =
     new SCCreateTableStatement(
       CreateTable(keyspace, name, numPartitionKeys, numClusteringKeys),
@@ -627,8 +602,8 @@ object SCCreateTableStatement {
     )(sSession)
 }
 final case class SCTruncateTableStatement private (
-  private val truncateTableBlock: TruncateTable,
-  protected val cassConsistency: CassConsistency
+    private val truncateTableBlock: TruncateTable,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCStatement[ResultSet] {
   protected def mkResponse(rs: ResultSet): ResultSet = rs
@@ -637,17 +612,15 @@ final case class SCTruncateTableStatement private (
     Seq(truncateTableBlock)
 }
 object SCTruncateTableStatement {
-  def apply(keyspace: String,
-            table: String,
-            sSession: ScalaSession): SCTruncateTableStatement =
+  def apply(keyspace: String, table: String, sSession: ScalaSession): SCTruncateTableStatement =
     new SCTruncateTableStatement(
       TruncateTable(keyspace, table),
       CassConsistency.Default
     )(sSession)
 }
 final case class SCDropTableStatement private (
-  private val dropTableBlock: DropTable,
-  protected val cassConsistency: CassConsistency
+    private val dropTableBlock: DropTable,
+    protected val cassConsistency: CassConsistency
 )(implicit protected val sSession: ScalaSession)
     extends SCStatement[ResultSet] {
   protected def mkResponse(rs: ResultSet): ResultSet = rs
@@ -656,9 +629,7 @@ final case class SCDropTableStatement private (
     Seq(dropTableBlock)
 }
 object SCDropTableStatement {
-  def apply(keyspace: String,
-            table: String,
-            sSession: ScalaSession): SCDropTableStatement =
+  def apply(keyspace: String, table: String, sSession: ScalaSession): SCDropTableStatement =
     new SCDropTableStatement(
       DropTable(keyspace, table),
       CassConsistency.Default

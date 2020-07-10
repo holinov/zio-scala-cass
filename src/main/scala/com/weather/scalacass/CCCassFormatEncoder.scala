@@ -1,14 +1,14 @@
 package com.weather.scalacass
 
 import shapeless.labelled.FieldType
-import shapeless.{::, HList, HNil, LabelledGeneric, Lazy, Witness}
+import shapeless.{ ::, HList, HNil, LabelledGeneric, Lazy, Witness }
 
 abstract class DerivedCCCassFormatEncoder[F] extends CCCassFormatEncoder[F]
 
 object DerivedCCCassFormatEncoder {
   implicit val hNilEncoder: DerivedCCCassFormatEncoder[HNil] =
     new DerivedCCCassFormatEncoder[HNil] {
-      def encodeWithName(f: HNil) = Right(Nil)
+      def encodeWithName(f: HNil)  = Right(Nil)
       def encodeWithQuery(f: HNil) = Right(Nil)
 
       val names = Nil
@@ -16,9 +16,9 @@ object DerivedCCCassFormatEncoder {
     }
 
   implicit def hConsEncoder[K <: Symbol, H, T <: HList](
-    implicit w: Witness.Aux[K],
-    tdH: Lazy[CassFormatEncoder[H]],
-    tdT: Lazy[DerivedCCCassFormatEncoder[T]]
+      implicit w: Witness.Aux[K],
+      tdH: Lazy[CassFormatEncoder[H]],
+      tdT: Lazy[DerivedCCCassFormatEncoder[T]]
   ): DerivedCCCassFormatEncoder[FieldType[K, H] :: T] =
     new DerivedCCCassFormatEncoder[FieldType[K, H] :: T] {
       def encodeWithName(f: FieldType[K, H] :: T) =
@@ -36,14 +36,14 @@ object DerivedCCCassFormatEncoder {
     }
 
   implicit def ccConverter[T, Repr <: HList](
-    implicit gen: LabelledGeneric.Aux[T, Repr],
-    hListDecoder: Lazy[DerivedCCCassFormatEncoder[Repr]]
+      implicit gen: LabelledGeneric.Aux[T, Repr],
+      hListDecoder: Lazy[DerivedCCCassFormatEncoder[Repr]]
   ): DerivedCCCassFormatEncoder[T] =
     new DerivedCCCassFormatEncoder[T] {
-      def encodeWithName(f: T) = hListDecoder.value.encodeWithName(gen.to(f))
+      def encodeWithName(f: T)  = hListDecoder.value.encodeWithName(gen.to(f))
       def encodeWithQuery(f: T) = hListDecoder.value.encodeWithQuery(gen.to(f))
-      def names = hListDecoder.value.names
-      def types = hListDecoder.value.types
+      def names                 = hListDecoder.value.names
+      def types                 = hListDecoder.value.types
     }
 }
 
@@ -76,9 +76,9 @@ trait CCCassFormatEncoder[F] { self =>
 
 object CCCassFormatEncoder extends ProductCCCassFormatEncoders {
   implicit def derive[T](
-    implicit derived: Lazy[DerivedCCCassFormatEncoder[T]]
+      implicit derived: Lazy[DerivedCCCassFormatEncoder[T]]
   ): CCCassFormatEncoder[T] = derived.value
   def apply[T](
-    implicit instance: CCCassFormatEncoder[T]
+      implicit instance: CCCassFormatEncoder[T]
   ): CCCassFormatEncoder[T] = instance
 }

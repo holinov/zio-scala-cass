@@ -4,8 +4,8 @@ import com.weather.scalacass.ScalaSession
 import com.weather.scalacass.util.CassandraUnitTester
 
 trait ActionUnitTests extends CassandraUnitTester {
-  protected val keyspace = "mykeyspace"
-  private var _table: String = _
+  protected val keyspace        = "mykeyspace"
+  private var _table: String    = _
   private var _ss: ScalaSession = _
 
   case class Table(str: String, l: Long, i: Option[Int])

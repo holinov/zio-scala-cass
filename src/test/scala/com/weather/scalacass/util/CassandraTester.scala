@@ -1,13 +1,7 @@
 package com.weather.scalacass.util
 
 import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.{
-  BeforeAndAfter,
-  BeforeAndAfterAll,
-  EitherValues,
-  OptionValues,
-  TryValues
-}
+import org.scalatest.{ BeforeAndAfter, BeforeAndAfterAll, EitherValues, OptionValues, TryValues }
 import org.scalatest.matchers.should.Matchers
 
 abstract class CassandraTester

@@ -44,7 +44,7 @@ class DeleteUnitTests extends ActionUnitTests {
     println(executeAsync(query))
   }
   it should "use everything" in {
-    val query = ss.delete[SelectiveDelete](table, Query("asdf")).`if`(IfS(1234L)).usingTimestamp(12345L)
+    val query    = ss.delete[SelectiveDelete](table, Query("asdf")).`if`(IfS(1234L)).usingTimestamp(12345L)
     val executed = query.executeAsync()
     Await.ready(executed, 3.seconds)
     executed.value.value.failure.exception shouldBe an[InvalidQueryException]

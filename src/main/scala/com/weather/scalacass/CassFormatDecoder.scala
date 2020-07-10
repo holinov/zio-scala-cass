@@ -2,10 +2,10 @@ package com.weather.scalacass
 
 import java.nio.ByteBuffer
 
-import com.datastax.driver.core.{DataType, Row, TupleValue}
+import com.datastax.driver.core.{ DataType, Row, TupleValue }
 import com.datastax.driver.core.exceptions.InvalidTypeException
 import NotRecoverable.Try2Either
-import com.google.common.reflect.{TypeParameter, TypeToken}
+import com.google.common.reflect.{ TypeParameter, TypeToken }
 
 import scala.util.Try
 
@@ -40,8 +40,8 @@ trait CassFormatDecoder[T] { self =>
   final def map[U](fn: T => U): CassFormatDecoder[U] =
     new CassFormatDecoder[U] {
       type From = self.From
-      val typeToken = self.typeToken
-      def f2t(f: From): Result[U] = self.f2t(f).map(fn)
+      val typeToken                           = self.typeToken
+      def f2t(f: From): Result[U]             = self.f2t(f).map(fn)
       def extract(r: Row, name: String): From = self.extract(r, name)
       def tupleExtract(tup: TupleValue, pos: Int): From =
         self.tupleExtract(tup, pos)
@@ -49,8 +49,8 @@ trait CassFormatDecoder[T] { self =>
   final def flatMap[U](fn: T => Result[U]): CassFormatDecoder[U] =
     new CassFormatDecoder[U] {
       type From = self.From
-      val typeToken = self.typeToken
-      def f2t(f: From): Result[U] = self.f2t(f).flatMap(fn)
+      val typeToken                           = self.typeToken
+      def f2t(f: From): Result[U]             = self.f2t(f).flatMap(fn)
       def extract(r: Row, name: String): From = self.extract(r, name)
       def tupleExtract(tup: TupleValue, pos: Int): From =
         self.tupleExtract(tup, pos)
@@ -66,12 +66,12 @@ trait CassFormatDecoder[T] { self =>
 // extended by CassFormatDecoderVersionSpecific
 trait LowPriorityCassFormatDecoder {
   implicit def tupleFormat[TUP <: Product](
-    implicit underlying: TupleCassFormatDecoder[TUP]
+      implicit underlying: TupleCassFormatDecoder[TUP]
   ): CassFormatDecoder[TUP] = new CassFormatDecoder[TUP] {
     type From = TupleValue
-    val typeToken = TypeToken.of(classOf[TupleValue])
-    def f2t(f: From) = underlying.decode(f, 0)
-    def extract(r: Row, name: String) = r getTupleValue name
+    val typeToken                               = TypeToken.of(classOf[TupleValue])
+    def f2t(f: From)                            = underlying.decode(f, 0)
+    def extract(r: Row, name: String)           = r getTupleValue name
     def tupleExtract(tup: TupleValue, pos: Int) = tup getTupleValue pos
     override def decode(r: Row, name: String): Result[TUP] =
       super.decode(r, name) match {
@@ -95,37 +95,36 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
 
   // in cassandra, empty collection == NULL, so null check is not helpful
   trait CollectionCassFormatDecoder[T] extends CassFormatDecoder[T] {
-    override private[scalacass] def decode(r: Row,
-                                           name: String): Either[Throwable, T] =
+    override private[scalacass] def decode(r: Row, name: String): Either[Throwable, T] =
       Try[Either[Throwable, T]](f2t(extract(r, name))).unwrap[T]
     override private[scalacass] def tupleDecode(
-      tup: TupleValue,
-      pos: Int
+        tup: TupleValue,
+        pos: Int
     ): Either[Throwable, T] =
       Try[Either[Throwable, T]](f2t(tupleExtract(tup, pos))).unwrap[T]
   }
 
   private[scalacass] def sameTypeCassFormatDecoder[T <: AnyRef](
-    _typeToken: TypeToken[T],
-    _extract: (Row, String) => T,
-    _tupExtract: (TupleValue, Int) => T
+      _typeToken: TypeToken[T],
+      _extract: (Row, String) => T,
+      _tupExtract: (TupleValue, Int) => T
   ) = new CassFormatDecoder[T] {
     type From = T
-    val typeToken = _typeToken
-    def f2t(f: From) = Right(f)
-    def extract(r: Row, name: String) = _extract(r, name)
+    val typeToken                                  = _typeToken
+    def f2t(f: From)                               = Right(f)
+    def extract(r: Row, name: String)              = _extract(r, name)
     def tupleExtract(tup: TupleValue, pos: Int): T = _tupExtract(tup, pos)
   }
   def safeConvertCassFormatDecoder[T, F <: AnyRef](
-    _typeToken: TypeToken[F],
-    _f2t: F => T,
-    _extract: (Row, String) => F,
-    _tupExtract: (TupleValue, Int) => F
+      _typeToken: TypeToken[F],
+      _f2t: F => T,
+      _extract: (Row, String) => F,
+      _tupExtract: (TupleValue, Int) => F
   ) = new CassFormatDecoder[T] {
     type From = F
-    val typeToken = _typeToken
-    def f2t(f: From) = Right(_f2t(f))
-    def extract(r: Row, name: String) = _extract(r, name)
+    val typeToken                               = _typeToken
+    def f2t(f: From)                            = Right(_f2t(f))
+    def extract(r: Row, name: String)           = _extract(r, name)
     def tupleExtract(tup: TupleValue, pos: Int) = _tupExtract(tup, pos)
   }
 
@@ -206,7 +205,7 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
       .where(new TypeParameter[T]() {}, eltType)
 
   implicit def listFormat[T](
-    implicit underlying: CassFormatDecoder[T]
+      implicit underlying: CassFormatDecoder[T]
   ): CassFormatDecoder[List[T]] = new CollectionCassFormatDecoder[List[T]] {
     type From = java.util.List[underlying.From]
     val typeToken = listOf(underlying.typeToken)
@@ -214,7 +213,7 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
       val acc = List.newBuilder[T]
       @scala.annotation.tailrec
       def process(
-        it: java.util.ListIterator[underlying.From]
+          it: java.util.ListIterator[underlying.From]
       ): Result[List[T]] =
         if (!it.hasNext) Right(acc.result)
         else {
@@ -236,7 +235,7 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
       .where(new TypeParameter[T]() {}, eltType)
 
   implicit def setFormat[T](
-    implicit underlying: CassFormatDecoder[T]
+      implicit underlying: CassFormatDecoder[T]
   ): CassFormatDecoder[Set[T]] = new CollectionCassFormatDecoder[Set[T]] {
     type From = java.util.Set[underlying.From]
     val typeToken: TypeToken[java.util.Set[underlying.From]] = setOf(
@@ -261,15 +260,14 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
       tup getSet (pos, underlying.typeToken)
   }
 
-  def mapOf[K, V](keyType: TypeToken[K],
-                  valueType: TypeToken[V]): TypeToken[java.util.Map[K, V]] =
+  def mapOf[K, V](keyType: TypeToken[K], valueType: TypeToken[V]): TypeToken[java.util.Map[K, V]] =
     new TypeToken[java.util.Map[K, V]]() {}
       .where(new TypeParameter[K]() {}, keyType)
       .where(new TypeParameter[V]() {}, valueType)
 
   implicit def mapFormat[K, V](
-    implicit underlyingK: CassFormatDecoder[K],
-    underlyingV: CassFormatDecoder[V]
+      implicit underlyingK: CassFormatDecoder[K],
+      underlyingV: CassFormatDecoder[V]
   ): CassFormatDecoder[Map[K, V]] =
     new CollectionCassFormatDecoder[Map[K, V]] {
       type From = java.util.Map[underlyingK.From, underlyingV.From]
@@ -278,9 +276,9 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
         val acc = Map.newBuilder[K, V]
         @scala.annotation.tailrec
         def process(
-          it: java.util.Iterator[
-            java.util.Map.Entry[underlyingK.From, underlyingV.From]
-          ]
+            it: java.util.Iterator[
+              java.util.Map.Entry[underlyingK.From, underlyingV.From]
+            ]
         ): Result[Map[K, V]] =
           if (!it.hasNext) Right(acc.result)
           else {
@@ -355,12 +353,12 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
     }
 
   implicit def optionFormat[A](
-    implicit underlying: CassFormatDecoder[A]
+      implicit underlying: CassFormatDecoder[A]
   ): CassFormatDecoder[Option[A]] = new CassFormatDecoder[Option[A]] {
     type From = underlying.From
-    val typeToken = underlying.typeToken
+    val typeToken                       = underlying.typeToken
     def f2t(f: From): Result[Option[A]] = underlying.f2t(f).map(Option(_))
-    def extract(r: Row, name: String) = underlying.extract(r, name)
+    def extract(r: Row, name: String)   = underlying.extract(r, name)
     override def decode(r: Row, name: String): Result[Option[A]] =
       super.decode(r, name) match {
         case Left(Recoverable(_)) => Right(None)
@@ -376,11 +374,11 @@ object CassFormatDecoder extends CassFormatDecoderVersionSpecific {
   }
 
   implicit def eitherFormat[A](
-    implicit underlying: CassFormatDecoder[A]
+      implicit underlying: CassFormatDecoder[A]
   ): CassFormatDecoder[Result[A]] = new CassFormatDecoder[Result[A]] {
     type From = underlying.From
-    val typeToken = underlying.typeToken
-    def f2t(f: From) = Right(underlying.f2t(f))
+    val typeToken                     = underlying.typeToken
+    def f2t(f: From)                  = Right(underlying.f2t(f))
     def extract(r: Row, name: String) = underlying.extract(r, name)
     override def decode(r: Row, name: String) = super.decode(r, name) match {
       case Left(l) => Right(Left(l))

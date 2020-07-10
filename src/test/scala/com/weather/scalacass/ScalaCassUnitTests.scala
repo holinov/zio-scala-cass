@@ -34,10 +34,10 @@ abstract class ScalaCassUnitTests
     )
     with OptionValues {
   def testType[GoodType: CassFormatDecoder, BadType: CassFormatDecoder](
-    k: String,
-    v: GoodType,
-    default: GoodType,
-    testCC: Boolean = true
+      k: String,
+      v: GoodType,
+      default: GoodType,
+      testCC: Boolean = true
   )(implicit goodCF: CassFormatEncoder[GoodType]) = {
     val args = {
       val converted =
@@ -107,7 +107,7 @@ abstract class ScalaCassUnitTests
     if (testCC) {
       case class TestCC(pkField: String, refField: GoodType)
       case class QueryCC(pkField: String)
-      val ss = new ScalaSession(dbName)
+      val ss    = new ScalaSession(dbName)
       val tname = s"testdb${scala.util.Random.alphanumeric.take(12).mkString}"
       ss.createTable[TestCC](tname, 1, 0)(CCCassFormatEncoder[TestCC]).execute()
       val t1 = TestCC("t1", v)
@@ -152,9 +152,7 @@ abstract class ScalaCassUnitTests
     }
   }
 }
-class ScalaCassUnitTestsAll
-    extends ScalaCassUnitTests
-    with ScalaCassUnitTestsVersionSpecific {
+class ScalaCassUnitTestsAll extends ScalaCassUnitTests with ScalaCassUnitTestsVersionSpecific {
   "strings" should "be extracted correctly" in testType[String, Int](
     "str",
     "asdf",
@@ -296,8 +294,8 @@ class ScalaCassUnitTestsAll
     a[BadTypeException] should be thrownBy res.as[(String, Int)]("tup")
   }
   "counter" should "be extracted correctly" in {
-    val pKey = "str"
-    val k = "count"
+    val pKey         = "str"
+    val k            = "count"
     val counterTable = "counterTable"
     client.session.execute(
       s"CREATE TABLE $dbName.$counterTable ($pKey varchar, $k counter, PRIMARY KEY (($pKey)))"
@@ -322,7 +320,7 @@ class ScalaCassUnitTestsAll
     case class CounterCC(str: String, count: Long)
     case class QueryCC(str: String)
     val tname = "derivedtable"
-    val ss = ScalaSession(dbName)
+    val ss    = ScalaSession(dbName)
     ss.createTable[CounterCC](tname, 1, 0).execute()
     val t1 = CounterCC("t1", 1)
     val q1 = QueryCC(t1.str)

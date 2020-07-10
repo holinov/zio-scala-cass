@@ -6,9 +6,9 @@ import scala.collection.convert.AsScalaConverters
 import scala.language.reflectiveCalls
 
 class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
-  val dbName = "testDB"
+  val dbName       = "testDB"
   val tableColumns = List("str varchar, str2 varchar, i int")
-  val primaryKeys = List("str")
+  val primaryKeys  = List("str")
 
   override def beforeAll(): Unit = {
     super.beforeAll()
@@ -19,7 +19,7 @@ class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
   }
 
   def ssFixture = new {
-    val ss = new ScalaSession(dbName)(client.session)
+    val ss    = new ScalaSession(dbName)(client.session)
     val tname = s"createTableTest${java.util.UUID.randomUUID.toString.take(5)}"
   }
   case class A(str: String, str2: String, i: Int)
@@ -33,9 +33,7 @@ class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
       .value shouldBe a[WrongPrimaryKeySizeException]
   }
 
-  def getpk[T: CCCassFormatDecoder: CCCassFormatEncoder](tname: String,
-                                                         pkCount: Int,
-                                                         clustCount: Int) = {
+  def getpk[T: CCCassFormatDecoder: CCCassFormatEncoder](tname: String, pkCount: Int, clustCount: Int) = {
     ssFixture.ss.createTable[T](tname, pkCount, clustCount).execute()
     val table = cluster.getMetadata.getKeyspace(dbName).getTable(tname)
     val parts = asScala(table.getPartitionKey).map(_.getName)
@@ -44,7 +42,7 @@ class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
   }
 
   "createTable10" should "create a table" in {
-    val f = ssFixture
+    val f              = ssFixture
     val (parts, clust) = getpk[A](f.tname, 1, 0)
     parts should contain("str")
     parts should not contain "str2"
@@ -55,7 +53,7 @@ class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
     f.ss.dropTable(f.tname).execute()
   }
   "createTable11" should "create a table" in {
-    val f = ssFixture
+    val f              = ssFixture
     val (parts, clust) = getpk[A](f.tname, 1, 1)
 
     parts should contain("str")
@@ -69,7 +67,7 @@ class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
     f.ss.dropTable(f.tname).execute()
   }
   "createTable20" should "create a table" in {
-    val f = ssFixture
+    val f              = ssFixture
     val (parts, clust) = getpk[A](f.tname, 2, 0)
 
     parts should contain("str")
@@ -81,7 +79,7 @@ class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
     f.ss.dropTable(f.tname).execute()
   }
   "createTable21" should "create a table" in {
-    val f = ssFixture
+    val f              = ssFixture
     val (parts, clust) = getpk[A](f.tname, 2, 1)
 
     parts should contain("str")
@@ -95,7 +93,7 @@ class CreateTableUnitTests extends CassandraUnitTester with AsScalaConverters {
     f.ss.dropTable(f.tname).execute()
   }
   "createTable12" should "create a table" in {
-    val f = ssFixture
+    val f              = ssFixture
     val (parts, clust) = getpk[A](f.tname, 1, 2)
 
     parts should contain("str")

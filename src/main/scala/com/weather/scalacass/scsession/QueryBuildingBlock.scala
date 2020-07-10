@@ -17,10 +17,10 @@ private[scalacass] object QueryBuildingBlock {
   import SCStatement.RightBiasedEither
 
   def namedEncode[A](toEncode: A)(
-    implicit encoder: CCCassFormatEncoder[A]
+      implicit encoder: CCCassFormatEncoder[A]
   ): Result[(List[String], List[AnyRef])] =
     encoder.encodeWithName(toEncode).map { e =>
-      val strList = List.newBuilder[String]
+      val strList    = List.newBuilder[String]
       val anyrefList = List.newBuilder[AnyRef]
 
       e.foreach {
@@ -34,10 +34,10 @@ private[scalacass] object QueryBuildingBlock {
     }
 
   def queryEncode[A](toEncode: A)(
-    implicit encoder: CCCassFormatEncoder[A]
+      implicit encoder: CCCassFormatEncoder[A]
   ): Result[(List[String], List[AnyRef])] =
     encoder.encodeWithQuery(toEncode).map { e =>
-      val strList = List.newBuilder[String]
+      val strList    = List.newBuilder[String]
       val anyrefList = List.newBuilder[AnyRef]
 
       e.foreach {
@@ -54,13 +54,12 @@ private[scalacass] object QueryBuildingBlock {
     }
 
   trait NoQuery { this: QueryBuildingBlock =>
-    val strRepr: Result[String] = Right("")
+    val strRepr: Result[String]         = Right("")
     val valueRepr: Result[List[AnyRef]] = Right(Nil)
   }
 
-  final case class Preamble(verb: String, keyspace: String, table: String)
-      extends QueryBuildingBlock {
-    def strRepr = Right(s"$verb $keyspace.$table")
+  final case class Preamble(verb: String, keyspace: String, table: String) extends QueryBuildingBlock {
+    def strRepr   = Right(s"$verb $keyspace.$table")
     def valueRepr = Right(Nil)
   }
 
@@ -68,7 +67,7 @@ private[scalacass] object QueryBuildingBlock {
     def updateTTLWith(ttl: Int): TTLTimestamp = TTLTimestamp.addTTL(this, ttl)
     def updateTimestampWith(ts: Long): TTLTimestamp =
       TTLTimestamp.addTS(this, ts)
-    def removeTTL: TTLTimestamp = TTLTimestamp.removeTTL(this)
+    def removeTTL: TTLTimestamp       = TTLTimestamp.removeTTL(this)
     def removeTimestamp: TTLTimestamp = TTLTimestamp.removeTimestamp(this)
   }
 
@@ -91,7 +90,7 @@ private[scalacass] object QueryBuildingBlock {
       def valueRepr =
         for {
           ttlE <- CassFormatEncoder[Int].encode(ttl)
-          tsE <- CassFormatEncoder[Long].encode(ts)
+          tsE  <- CassFormatEncoder[Long].encode(ts)
         } yield ttlE :: tsE :: Nil
     }
 
@@ -127,9 +126,8 @@ private[scalacass] object QueryBuildingBlock {
   }
 
   object CassConsistency {
-    import com.datastax.driver.core.{ConsistencyLevel => CL}
-    final case class Consistency(private val _level: CL)
-        extends CassConsistency {
+    import com.datastax.driver.core.{ ConsistencyLevel => CL }
+    final case class Consistency(private val _level: CL) extends CassConsistency {
       val level = Some(_level)
     }
 
@@ -138,7 +136,7 @@ private[scalacass] object QueryBuildingBlock {
     }
 
     def addConsistency(cl: CL): CassConsistency = Consistency(cl)
-    def removeConsistency: CassConsistency = Default
+    def removeConsistency: CassConsistency      = Default
   }
 
   trait CCBlock { this: QueryBuildingBlock =>
@@ -149,18 +147,17 @@ private[scalacass] object QueryBuildingBlock {
     protected def skipIfEmpty: Boolean
 
     def strRepr: Result[String] =
-      strList.map(
-        strs =>
-          if (skipIfEmpty && strs.isEmpty) ""
-          else strs.mkString(prefix, infix, suffix)
+      strList.map(strs =>
+        if (skipIfEmpty && strs.isEmpty) ""
+        else strs.mkString(prefix, infix, suffix)
       )
   }
 
   abstract class CCBlockWithNamedValue[T: CCCassFormatEncoder](
-    protected val skipIfEmpty: Boolean,
-    protected val prefix: String,
-    protected val infix: String,
-    protected val suffix: String
+      protected val skipIfEmpty: Boolean,
+      protected val prefix: String,
+      protected val infix: String,
+      protected val suffix: String
   ) extends CCBlock { this: QueryBuildingBlock =>
     protected def cc: T
     protected lazy val namedEncoded: Result[(List[String], List[AnyRef])] =
@@ -171,10 +168,10 @@ private[scalacass] object QueryBuildingBlock {
   }
 
   abstract class CCBlockWithQueryValue[T: CCCassFormatEncoder](
-    protected val skipIfEmpty: Boolean,
-    protected val prefix: String,
-    protected val infix: String,
-    protected val suffix: String
+      protected val skipIfEmpty: Boolean,
+      protected val prefix: String,
+      protected val infix: String,
+      protected val suffix: String
   ) extends CCBlock { this: QueryBuildingBlock =>
     protected def cc: T
     protected lazy val queryEncoded: Result[(List[String], List[AnyRef])] =
@@ -185,15 +182,15 @@ private[scalacass] object QueryBuildingBlock {
   }
 
   abstract class CCBlockWithNoValue[T](
-    protected val skipIfEmpty: Boolean,
-    protected val preambleInfix: String
+      protected val skipIfEmpty: Boolean,
+      protected val preambleInfix: String
   )(implicit encoder: CCCassFormatEncoder[T])
       extends CCBlock { this: QueryBuildingBlock =>
     protected def preamble: Preamble
     protected lazy val strList: Result[List[String]] = Right(encoder.names)
 
     protected val prefix = s"${preamble.verb} "
-    protected val infix = s", "
+    protected val infix  = s", "
     protected val suffix =
       s" $preambleInfix ${preamble.keyspace}.${preamble.table}"
 
@@ -210,11 +207,11 @@ private[scalacass] object QueryBuildingBlock {
     }
   }
   final case class CCBlockDelete[T](protected val preamble: Preamble)(
-    implicit encoder: CCCassFormatEncoder[T]
+      implicit encoder: CCCassFormatEncoder[T]
   ) extends CCBlockWithNoValue[T](false, "FROM")
       with QueryBuildingBlock
   final case class CCBlockSelect[T](preamble: Preamble)(
-    implicit encoder: CCCassFormatEncoder[T]
+      implicit encoder: CCCassFormatEncoder[T]
   ) extends CCBlockWithNoValue[T](false, "FROM")
       with QueryBuildingBlock
   final case class CCBlockUpdate[T: CCCassFormatEncoder](protected val cc: T)
@@ -230,12 +227,12 @@ private[scalacass] object QueryBuildingBlock {
     final case object NoConditional extends If with NoQuery
 
     final case object IfNotExists extends If {
-      val strRepr = Right(" IF NOT EXISTS")
+      val strRepr   = Right(" IF NOT EXISTS")
       val valueRepr = Right(Nil)
     }
 
     final case object IfExists extends If {
-      val strRepr = Right(" IF EXISTS")
+      val strRepr   = Right(" IF EXISTS")
       val valueRepr = Right(Nil)
     }
 
@@ -260,27 +257,25 @@ private[scalacass] object QueryBuildingBlock {
   object Filtering {
     final case object NoFiltering extends NoQuery with Filtering
     final case object AllowFiltering extends Filtering {
-      val strRepr: Result[String] = Right(" ALLOW FILTERING")
+      val strRepr: Result[String]         = Right(" ALLOW FILTERING")
       val valueRepr: Result[List[AnyRef]] = Right(Nil)
     }
   }
 
-  final case class Raw(private val _strRepr: String,
-                       private val anyrefArgs: List[AnyRef])
-      extends QueryBuildingBlock {
-    def strRepr = Right(_strRepr)
+  final case class Raw(private val _strRepr: String, private val anyrefArgs: List[AnyRef]) extends QueryBuildingBlock {
+    def strRepr   = Right(_strRepr)
     def valueRepr = Right(anyrefArgs)
   }
 
   final case class CreateTable[T](
-    keyspace: String,
-    name: String,
-    numPartitionKeys: Int,
-    numClusteringKeys: Int
+      keyspace: String,
+      name: String,
+      numPartitionKeys: Int,
+      numClusteringKeys: Int
   )(implicit encoder: CCCassFormatEncoder[T])
       extends QueryBuildingBlock {
     private[this] def wrongPKSize(
-      m: String
+        m: String
     ): (Result[String], Result[List[AnyRef]]) = {
       val failed = Left(new WrongPrimaryKeySizeException(m))
       (failed, failed)
@@ -295,8 +290,8 @@ private[scalacass] object QueryBuildingBlock {
         wrongPKSize(s"too many partition+clustering keys for table $name")
       else {
         val (partitionKeys, rest) = allColumns.splitAt(numPartitionKeys)
-        val clusteringKeys = rest.take(numClusteringKeys)
-        val pk = s"${partitionKeys.map(_._1).mkString("(", ", ", ")")}"
+        val clusteringKeys        = rest.take(numClusteringKeys)
+        val pk                    = s"${partitionKeys.map(_._1).mkString("(", ", ", ")")}"
         val fullKey =
           if (numClusteringKeys > 0)
             s"($pk, ${clusteringKeys.map(_._1).mkString(", ")})"
@@ -306,14 +301,12 @@ private[scalacass] object QueryBuildingBlock {
           .mkString(", ")}, PRIMARY KEY $fullKey)"), Right(Nil))
       }
   }
-  final case class TruncateTable(keyspace: String, table: String)
-      extends QueryBuildingBlock {
-    def strRepr: Result[String] = Right(s"TRUNCATE TABLE $keyspace.$table")
+  final case class TruncateTable(keyspace: String, table: String) extends QueryBuildingBlock {
+    def strRepr: Result[String]         = Right(s"TRUNCATE TABLE $keyspace.$table")
     def valueRepr: Result[List[AnyRef]] = Right(Nil)
   }
-  final case class DropTable(keyspace: String, table: String)
-      extends QueryBuildingBlock {
-    def strRepr: Result[String] = Right(s"DROP TABLE $keyspace.$table")
+  final case class DropTable(keyspace: String, table: String) extends QueryBuildingBlock {
+    def strRepr: Result[String]         = Right(s"DROP TABLE $keyspace.$table")
     def valueRepr: Result[List[AnyRef]] = Right(Nil)
   }
 
@@ -321,15 +314,12 @@ private[scalacass] object QueryBuildingBlock {
   object TableProperties {
     final case object NoProperties extends NoQuery with TableProperties
     final case class With(properties: String) extends TableProperties {
-      def strRepr = Right(s" WITH $properties")
+      def strRepr   = Right(s" WITH $properties")
       def valueRepr = Right(Nil)
     }
   }
 
-  final case class CreateKeyspace(keyspace: String,
-                                  ifBlock: If,
-                                  properties: String)
-      extends QueryBuildingBlock {
+  final case class CreateKeyspace(keyspace: String, ifBlock: If, properties: String) extends QueryBuildingBlock {
     def strRepr: Result[String] =
       ifBlock.strRepr.map(
         "CREATE KEYSPACE" + _ + s" $keyspace WITH $properties"
@@ -337,21 +327,20 @@ private[scalacass] object QueryBuildingBlock {
     def valueRepr: Result[List[AnyRef]] = Right(Nil)
   }
   final case class DropKeyspace(keyspace: String) extends QueryBuildingBlock {
-    def strRepr: Result[String] = Right(s"DROP KEYSPACE $keyspace")
+    def strRepr: Result[String]         = Right(s"DROP KEYSPACE $keyspace")
     def valueRepr: Result[List[AnyRef]] = Right(Nil)
   }
 
-  def build(qbbs: Seq[QueryBuildingBlock]): Result[(String, List[AnyRef])] = {
+  def build(qbbs: Seq[QueryBuildingBlock]): Result[(String, List[AnyRef])] =
     qbbs.foldLeft(
       Right(("", List.empty[AnyRef])): Result[(String, List[AnyRef])]
     ) {
       case (acc, n) =>
         for {
           _acc <- acc
-          tup <- n.allRepr
+          tup  <- n.allRepr
         } yield (_acc._1 + tup._1, _acc._2 ::: tup._2)
     }
-  }
   def of(qbbs: QueryBuildingBlock*): Result[(String, List[AnyRef])] =
     build(qbbs)
 }

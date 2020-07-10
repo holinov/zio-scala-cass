@@ -1,6 +1,6 @@
 package com.weather.scalacass
 
-import com.datastax.driver.core.{DataType, Row, TupleValue}
+import com.datastax.driver.core.{ DataType, Row, TupleValue }
 
 sealed trait Nullable[+A] {
   def toOption: Option[A]
@@ -17,11 +17,11 @@ case object IsNull extends Nullable[Nothing] {
 
 object Nullable {
   def apply[A](x: A): Nullable[A] = if (x.isNull) IsNull else Is(x)
-  def empty[A]: Nullable[A] = IsNull
+  def empty[A]: Nullable[A]       = IsNull
   implicit def nullable2iterable[A](xo: Nullable[A]): Iterable[A] =
     xo.toOption.toList
 
-  implicit class NullableOption[+A](val opt: Option[A]) extends AnyVal {
+  implicit class NullableOption[+A](private val opt: Option[A]) extends AnyVal {
     def toNullable: Nullable[A] = opt.fold[Nullable[A]](IsNull)(Is.apply)
   }
   implicit def option2nullable[A](opt: Option[A]): Nullable[A] = opt.toNullable
@@ -29,7 +29,7 @@ object Nullable {
     nullable.toOption
 
   implicit def encoder[A](
-    implicit underlying: CassFormatEncoder[A]
+      implicit underlying: CassFormatEncoder[A]
   ): CassFormatEncoder[Nullable[A]] = new CassFormatEncoder[Nullable[A]] {
     type From = Nullable[underlying.From]
 
@@ -50,11 +50,11 @@ object Nullable {
   }
 
   implicit def decoder[A](
-    implicit underlying: CassFormatDecoder[A]
+      implicit underlying: CassFormatDecoder[A]
   ): CassFormatDecoder[Nullable[A]] = new CassFormatDecoder[Nullable[A]] {
     type From = underlying.From
-    val typeToken = underlying.typeToken
-    def f2t(f: From): Result[Nullable[A]] = underlying.f2t(f).map(Is.apply)
+    val typeToken                           = underlying.typeToken
+    def f2t(f: From): Result[Nullable[A]]   = underlying.f2t(f).map(Is.apply)
     def extract(r: Row, name: String): From = underlying.extract(r, name)
 
     override def decode(r: Row, name: String): Result[Nullable[A]] =

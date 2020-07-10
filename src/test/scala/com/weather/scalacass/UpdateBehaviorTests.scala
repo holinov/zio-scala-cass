@@ -7,7 +7,7 @@ import org.scalatest.OptionValues
 import com.weather.scalacass.syntax._
 
 object UpdateBehaviorTests {
-  val db = "testDB"
+  val db    = "testDB"
   val table = "testTable"
 }
 class UpdateBehaviorTests
@@ -23,15 +23,14 @@ class UpdateBehaviorTests
 
   case class Query(str: String)
   case class Insert(str: String, l: List[String], s: Set[Double])
-  val baseStr = "some item"
-  val base = Insert(baseStr, List("asdf"), Set(1.0))
+  val baseStr   = "some item"
+  val base      = Insert(baseStr, List("asdf"), Set(1.0))
   val baseQuery = Query(baseStr)
   def insertOne(i: Insert = base): Result[ResultSet] =
     ss.insert(table, i).execute()
 
   "explicit replacement" should "act as before" in {
-    case class Replacing(l: UpdateBehavior.Replace[List, String],
-                         s: UpdateBehavior.Replace[Set, Double])
+    case class Replacing(l: UpdateBehavior.Replace[List, String], s: UpdateBehavior.Replace[Set, Double])
     val instance = Replacing(List("fdsa"), Set(2.0))
 
     insertOne()
@@ -69,8 +68,7 @@ class UpdateBehaviorTests
   }
 
   "add" should "combine the two entries" in {
-    case class Adding(l: UpdateBehavior.Add[List, String],
-                      s: UpdateBehavior.Add[Set, Double])
+    case class Adding(l: UpdateBehavior.Add[List, String], s: UpdateBehavior.Add[Set, Double])
     val instance = Adding(List("afaf"), Set(4.0))
 
     insertOne()
@@ -89,8 +87,7 @@ class UpdateBehaviorTests
   }
 
   "subtract" should "subtract from the original entry" in {
-    case class Subtracting(l: UpdateBehavior.Subtract[List, String],
-                           s: UpdateBehavior.Subtract[Set, Double])
+    case class Subtracting(l: UpdateBehavior.Subtract[List, String], s: UpdateBehavior.Subtract[Set, Double])
     val instance = Subtracting(List("another str"), Set(5.0))
 
     val expandedBase =

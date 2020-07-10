@@ -1,13 +1,12 @@
 package com.weather.scalacass
 
 import com.datastax.driver.core.ConsistencyLevel
-import com.weather.scalacass.scsession.{SCBatchStatement, SCStatement},
-SCStatement.RightBiasedEither
+import com.weather.scalacass.scsession.{ SCBatchStatement, SCStatement }, SCStatement.RightBiasedEither
 import com.weather.scalacass.util.CassandraWithTableTester
-import org.scalatest.{Assertion, OptionValues}
+import org.scalatest.{ Assertion, OptionValues }
 
 object ConsistencyLevelUnitTest {
-  val db = "actionsdb"
+  val db    = "actionsdb"
   val table = "actionstable"
 }
 
@@ -19,7 +18,7 @@ class ConsistencyLevelUnitTest
       List("str")
     )
     with OptionValues {
-  import ConsistencyLevelUnitTest.{db, table}
+  import ConsistencyLevelUnitTest.{ db, table }
   lazy val ss = ScalaSession(ConsistencyLevelUnitTest.db)(client.session)
 
   case class Query(str: String)
@@ -27,12 +26,12 @@ class ConsistencyLevelUnitTest
   case class Update(otherstr: String, d: Double)
 
   val insertValue = Insert("str", "otherstr", 1234.0)
-  val queryValue = Query(insertValue.str)
+  val queryValue  = Query(insertValue.str)
   val updateValue = Update("updatedStr", 4321.0)
 
   def checkConsistency[T <: SCStatement[_]](
-    statement: T,
-    clOpt: Option[ConsistencyLevel]
+      statement: T,
+      clOpt: Option[ConsistencyLevel]
   ): Assertion = {
     clOpt match {
       case Some(cl) => statement.toString should include(s"<CONSISTENCY $cl>")
@@ -46,11 +45,11 @@ class ConsistencyLevelUnitTest
   }
 
   def fullCheck[T <: SCStatement[_]](statement: T)(
-    plusConsistency: (T, ConsistencyLevel) => T,
-    minusConsistency: T => T,
-    cl: ConsistencyLevel
+      plusConsistency: (T, ConsistencyLevel) => T,
+      minusConsistency: T => T,
+      cl: ConsistencyLevel
   ): Assertion = {
-    val statementWithConsistency = plusConsistency(statement, cl)
+    val statementWithConsistency   = plusConsistency(statement, cl)
     val statementWithNoConsistency = minusConsistency(statement)
 
     checkConsistency(statement, None)
@@ -126,8 +125,7 @@ class ConsistencyLevelUnitTest
   }
 
   it should "work with batches" in {
-    def checkConsistencyBatch(statement: SCBatchStatement,
-                              clOpt: Option[ConsistencyLevel]): Assertion = {
+    def checkConsistencyBatch(statement: SCBatchStatement, clOpt: Option[ConsistencyLevel]): Assertion = {
       clOpt match {
         case Some(cl) => statement.toString should include(s"<CONSISTENCY $cl>")
         case None     => statement.toString should not include "<CONSISTENCY"
