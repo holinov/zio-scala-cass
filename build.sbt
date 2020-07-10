@@ -1,4 +1,4 @@
-val baseVersion       = "1.0.5"
+val baseVersion       = "1.0.6"
 val cassandra3Version = "3.7.1"
 val cassandra2Version = "2.1.10.3"
 val cassandraVersion =

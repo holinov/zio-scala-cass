@@ -12,6 +12,9 @@ import scala.jdk.CollectionConverters._
 import scala.reflect.ClassTag
 
 case class ZCassandraKeyspaceMeta(ksMeta: KeyspaceMetadata) {
+  def tableMeta(table: String): Task[TableMetadata] = ZIO.effect(ksMeta.getTable(table))
+  def tableCql(table: String): Task[String]         = tableMeta(table).map(_.exportAsString())
+
   val tables: Task[List[TableMetadata]] = ZIO.effect(ksMeta.getTables.iterator().asScala.toList)
   val views: Task[List[MaterializedViewMetadata]] =
     ZIO.effect(ksMeta.getMaterializedViews.iterator().asScala.toList)
@@ -110,6 +113,10 @@ case class ZCassandraRepos[Entity: CCCassFormatEncoder: CCCassFormatDecoder: Cla
         res      <- ZIO.fromEither(etherRes)
       } yield Stream.fromIterator(res)
     }
+
+  def tableMeta: RIO[Blocking, TableMetadata] = keyspaceMeta.flatMap(_.tableMeta(table))
+
+  def schemeCql: RIO[Blocking, String] = keyspaceMeta.flatMap(_.tableCql(table))
 }
 
 object ZCassandraRepos {

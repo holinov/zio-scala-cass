@@ -1,13 +1,15 @@
 package com.weather.scalacass.zio
 import com.datastax.driver.core.{ Cluster, Session }
-import com.weather.scalacass.{ NameEncoders, ScalaSession }
+import com.weather.scalacass.{ NameEncoders, ScalaSession, TimeUUID }
 import org.cassandraunit.utils.EmbeddedCassandraServerHelper
 import zio.test._
 import zio.test.Assertion._
 import com.weather.scalacass.zcassandra.ZScalaSession._
 import zio.{ ULayer, ZIO, ZLayer, ZManaged }
+import TestAspect._
 
 case class Entity(vVal1: String, vVal2: String)
+case class Entity1(vVal1: String, vVal2: TimeUUID)
 case class Query(str: String, strVal1: String)
 
 object ZioCassandraSpecs extends DefaultRunnableSpec {
@@ -35,8 +37,16 @@ object ZioCassandraSpecs extends DefaultRunnableSpec {
           _        <- repo.createTable(1, 0)
           isExists <- repo.existsTableOrView
         } yield assert(isExists)(equalTo(true))
+      },
+      testM("it knows about timeuuid") {
+        for {
+          repo1 <- repo[Entity1]("table3")
+          _     <- repo1.createTable(1, 0)
+          repo2 <- repo[Entity1]("table3")
+          cql   <- repo2.schemeCql
+        } yield assert(cql)(containsString("v_val2 timeuuid"))
       }
-    ).provideCustomLayerShared(embeededClusterClient)
+    ).provideCustomLayerShared(embeededClusterClient) @@ timed
   )
 
   val ks = "KS1"
