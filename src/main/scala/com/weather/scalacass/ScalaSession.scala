@@ -34,34 +34,34 @@ object ScalaSession {
       def withQuery(name: String): String = s"$name=$name+?"
     }
     object Add {
-      def apply[A](coll: List[A]): Add[List, A] = new Add(coll)
-      def apply[A](coll: Set[A]): Add[Set, A] = new Add(coll)
+      def apply[A](coll: List[A]): Add[List, A]          = new Add(coll)
+      def apply[A](coll: Set[A]): Add[Set, A]            = new Add(coll)
       implicit def liftList[A](l: List[A]): Add[List, A] = apply(l)
-      implicit def listSet[A](s: Set[A]): Add[Set, A] = apply(s)
+      implicit def listSet[A](s: Set[A]): Add[Set, A]    = apply(s)
     }
     final case class Subtract[F[_], A] private (coll: F[A]) extends UpdateBehavior[F, A] {
       def withQuery(name: String): String = s"$name=$name-?"
     }
     object Subtract {
-      def apply[A](coll: List[A]): Subtract[List, A] = new Subtract(coll)
-      def apply[A](coll: Set[A]): Subtract[Set, A] = new Subtract(coll)
+      def apply[A](coll: List[A]): Subtract[List, A]          = new Subtract(coll)
+      def apply[A](coll: Set[A]): Subtract[Set, A]            = new Subtract(coll)
       implicit def liftList[A](l: List[A]): Subtract[List, A] = apply(l)
-      implicit def listSet[A](s: Set[A]): Subtract[Set, A] = apply(s)
+      implicit def listSet[A](s: Set[A]): Subtract[Set, A]    = apply(s)
     }
     final case class Replace[F[_], A] private (coll: F[A]) extends UpdateBehavior[F, A] {
       def withQuery(name: String): String = s"$name=?"
     }
     object Replace {
-      def apply[A](coll: List[A]) = new Replace(coll)
-      def apply[A](coll: Set[A]) = new Replace(coll)
+      def apply[A](coll: List[A])                            = new Replace(coll)
+      def apply[A](coll: Set[A])                             = new Replace(coll)
       implicit def liftList[A](l: List[A]): Replace[List, A] = apply(l)
-      implicit def listSet[A](s: Set[A]): Replace[Set, A] = apply(s)
+      implicit def listSet[A](s: Set[A]): Replace[Set, A]    = apply(s)
     }
   }
 }
 
 final case class ScalaSession(keyspace: String)(implicit val session: Session) {
-  import ScalaSession.{ Fn02Callable, Star, NoQuery }
+  import ScalaSession.{ Fn02Callable, NoQuery, Star }
 
   private val logger = LoggerFactory.getLogger(getClass.getName)
 
@@ -71,7 +71,8 @@ final case class ScalaSession(keyspace: String)(implicit val session: Session) {
   private[scalacass] def getFromCacheOrElse(key: String, statement: => PreparedStatement) = {
     def onCacheMiss: Either[Throwable, PreparedStatement] = {
       logger.debug(s"cache miss for key %s", key)
-      try Right(statement) catch { case ex: Throwable => Left(ex) }
+      try Right(statement)
+      catch { case ex: Throwable => Left(ex) }
     }
     queryCache.get(key, onCacheMiss)
   }
@@ -79,26 +80,38 @@ final case class ScalaSession(keyspace: String)(implicit val session: Session) {
 
   def close(): Unit = session.close()
 
-  def createKeyspace(properties: String): SCCreateKeyspaceStatement = SCCreateKeyspaceStatement(keyspace, properties, this)
+  def createKeyspace(properties: String): SCCreateKeyspaceStatement =
+    SCCreateKeyspaceStatement(keyspace, properties, this)
 
   def dropKeyspace(): SCDropKeyspaceStatement = SCDropKeyspaceStatement(keyspace, this)
 
-  def createTable[T : CCCassFormatEncoder](name: String, numPartitionKeys: Int, numClusteringKeys: Int): SCCreateTableStatement =
+  def createTable[T: CCCassFormatEncoder](
+      name: String,
+      numPartitionKeys: Int,
+      numClusteringKeys: Int
+  ): SCCreateTableStatement =
     SCCreateTableStatement[T](keyspace, name, numPartitionKeys, numClusteringKeys, this)
 
   def truncateTable(table: String): SCTruncateTableStatement = SCTruncateTableStatement(keyspace, table, this)
-  def dropTable(table: String): SCDropTableStatement = SCDropTableStatement(keyspace, table, this)
+  def dropTable(table: String): SCDropTableStatement         = SCDropTableStatement(keyspace, table, this)
 
-  def insert[I : CCCassFormatEncoder](table: String, insertable: I): SCInsertStatement = SCInsertStatement(keyspace, table, insertable, this)
+  def insert[I: CCCassFormatEncoder](table: String, insertable: I): SCInsertStatement =
+    SCInsertStatement(keyspace, table, insertable, this)
 
-  def update[U : CCCassFormatEncoder, Q : CCCassFormatEncoder](table: String, updateable: U, query: Q): SCUpdateStatement =
+  def update[U: CCCassFormatEncoder, Q: CCCassFormatEncoder](
+      table: String,
+      updateable: U,
+      query: Q
+  ): SCUpdateStatement =
     SCUpdateStatement(keyspace, table, updateable, query, this)
 
   object delete {
     @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
     def apply[D] = partiallyApplied.asInstanceOf[PartiallyApplied[D]]
     final class PartiallyApplied[D] {
-      def apply[Q : CCCassFormatEncoder](table: String, where: Q)(implicit dEncoder: CCCassFormatEncoder[D]): SCDeleteStatement =
+      def apply[Q: CCCassFormatEncoder](table: String, where: Q)(
+          implicit dEncoder: CCCassFormatEncoder[D]
+      ): SCDeleteStatement =
         SCDeleteStatement[D, Q](keyspace, table, where, ScalaSession.this)
     }
     private val partiallyApplied = new PartiallyApplied[Nothing]
@@ -113,7 +126,9 @@ final case class ScalaSession(keyspace: String)(implicit val session: Session) {
     @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
     def apply[S] = partiallyApplied.asInstanceOf[PartiallyApplied[S]]
     final class PartiallyApplied[S] {
-      def apply[Q : CCCassFormatEncoder](table: String, where: Q)(implicit sEncoder: CCCassFormatEncoder[S]): SCSelectItStatement =
+      def apply[Q: CCCassFormatEncoder](table: String, where: Q)(
+          implicit sEncoder: CCCassFormatEncoder[S]
+      ): SCSelectItStatement =
         SCSelectStatement.apply[S, Q](keyspace, table, where, ScalaSession.this)
     }
     private val partiallyApplied = new PartiallyApplied[Nothing]
@@ -124,7 +139,9 @@ final case class ScalaSession(keyspace: String)(implicit val session: Session) {
     @SuppressWarnings(Array("org.wartremover.warts.AsInstanceOf"))
     def apply[S] = partiallyApplied.asInstanceOf[PartiallyApplied[S]]
     final class PartiallyApplied[S] {
-      def apply[Q : CCCassFormatEncoder](table: String, where: Q)(implicit sEncoder: CCCassFormatEncoder[S]): SCSelectOneStatement =
+      def apply[Q: CCCassFormatEncoder](table: String, where: Q)(
+          implicit sEncoder: CCCassFormatEncoder[S]
+      ): SCSelectOneStatement =
         SCSelectStatement.applyOne[S, Q](keyspace, table, where, ScalaSession.this)
     }
     private val partiallyApplied = new PartiallyApplied[Nothing]

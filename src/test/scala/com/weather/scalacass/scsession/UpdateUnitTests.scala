@@ -40,7 +40,7 @@ class UpdateUnitTests extends ActionUnitTests {
     println(executeAsync(query))
   }
   it should "combine all of them" in {
-    val query = ss.update(table, Update(123, None), Query("asdf")).usingTTL(1234).`if`(IfS(123L)).usingTimestamp(12345L)
+    val query    = ss.update(table, Update(123, None), Query("asdf")).usingTTL(1234).`if`(IfS(123L)).usingTimestamp(12345L)
     val executed = query.executeAsync()
     Await.ready(executed, 3.seconds)
     executed.value.value.failure.exception shouldBe an[InvalidQueryException]
