@@ -17,6 +17,13 @@ trait CassFormatEncoder[F] { self =>
       def encode(f: G): Result[From] = self.encode(fn(f))
     }
 
+  final def withCassDataType(ctype: DataType): CassFormatEncoder[F] =
+    new CassFormatEncoder[F] {
+      type From = self.From
+      val cassDataType               = ctype
+      def encode(f: F): Result[From] = self.encode(f)
+    }
+
   final def flatMap[G](fn: G => Result[F]): CassFormatEncoder[G] =
     new CassFormatEncoder[G] {
       type From = self.From
