@@ -67,13 +67,7 @@ lazy val applicationSettings = Seq(
                 "cassandra-driver-core"
               ), ExclusionRule("com.google.guava", "guava")),
               "org.cassandraunit" % "cassandra-unit" % "3.3.0.2" % "test"
-            )),
-  initialize := {
-    CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((2, 10)) => sys.props("scalac.patmat.analysisBudget") = "off"
-      case _             => sys.props remove "scalac.patmat.analysisBudget"
-    }
-  }
+            ))
 )
 
 lazy val noPublishSettings = Seq(

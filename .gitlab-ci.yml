@@ -3,6 +3,7 @@ stages:
 
 build:
   stage: assemble
-  image: gitlab.infra.guru:5005/gr/dockerfile/scala-builder:daddd63f6f17965692bf5ad48c13f50959f790ee
+#  image: gitlab.infra.guru:5005/gr/dockerfile/scala-builder:daddd63f6f17965692bf5ad48c13f50959f790ee
+  image: hseeberger/scala-sbt:8u222_1.3.5_2.13.1
   script:
     - sbt test
