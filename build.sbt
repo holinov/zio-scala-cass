@@ -1,4 +1,4 @@
-val baseVersion       = "1.0.2"
+val baseVersion       = "1.0.3"
 val cassandra3Version = "3.7.1"
 val cassandra2Version = "2.1.10.3"
 val cassandraVersion = sys.props.getOrElse("cassandra-driver.version", cassandra3Version) match {
