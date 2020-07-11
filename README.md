@@ -1,6 +1,12 @@
-# scala-cass
+# zio-scala-cass
 
-[![Build Status](https://travis-ci.org/thurstonsand/scala-cass.svg?branch=master)](https://travis-ci.org/thurstonsand/scala-cass)
-[![Join the chat at https://gitter.im/scala-cass/Lobby](https://badges.gitter.im/scala-cass/Lobby.svg)](https://gitter.im/scala-cass/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+Originaly was froked from https://github.com/thurstonsand/scala-cass
+Changes:
+* Crossbuild for 2.12.10 ans 2.13.2
+* Column naming stragety (very basic)
+* TimeUUID support
+* Common repository pattern
+* ZIO Layer and services
+* Cluster metadata operations
 
-[See full documentation here.](http://thurstonsand.github.io/scala-cass/)
+[See original full documentation here.](http://thurstonsand.github.io/scala-cass/)
